@@ -1,0 +1,550 @@
+{
+  "catalogue_name": "Opentrons Python API instrument catalogue \u2014 OT-2",
+  "catalogue_version": "1.0.0",
+  "generated_on": "2026-10-26",
+  "robot_model": "OT-2",
+  "scope": "Only pipette models and deck modules documented for the OT-2 Python Protocol API are included. Flex-only equipment and non-API enclosure accessories are intentionally excluded.",
+  "sources": [
+    {
+      "title": "Python API \u2014 Loading Pipettes",
+      "url": "https://docs.opentrons.com/python-api/pipettes/loading/",
+      "supports": "OT-2 GEN2 pipette model names, volume ranges, mounts and API load names."
+    },
+    {
+      "title": "Python API \u2014 Module Setup",
+      "url": "https://docs.opentrons.com/python-api/modules/setup/",
+      "supports": "Module API load names and minimum API versions."
+    },
+    {
+      "title": "OT-2 \u2014 Modules",
+      "url": "https://docs.opentrons.com/ot-2/modules/",
+      "supports": "OT-2-specific supported module families."
+    },
+    {
+      "title": "OT-2 \u2014 Pipettes",
+      "url": "https://docs.opentrons.com/ot-2/pipettes/",
+      "supports": "OT-2 pipette generations and channel configurations."
+    },
+    {
+      "title": "Python API \u2014 Deck Slots",
+      "url": "https://docs.opentrons.com/python-api/deck-slots/",
+      "supports": "Numeric OT-2 deck-slot labels and fixed trash area."
+    },
+    {
+      "title": "Heater-Shaker \u2014 Before You Begin",
+      "url": "https://docs.opentrons.com/heater-shaker/preinstall/",
+      "supports": "OT-2 Heater-Shaker supported deck slots and placement restrictions."
+    },
+    {
+      "title": "Temperature Module \u2014 Before You Begin",
+      "url": "https://docs.opentrons.com/temperature-module/pre-installation/",
+      "supports": "OT-2 Temperature Module GEN2 deck slots and port orientation."
+    },
+    {
+      "title": "Thermocycler \u2014 Before You Begin",
+      "url": "https://docs.opentrons.com/thermocycler/pre-installation/",
+      "supports": "OT-2 Thermocycler four-slot footprint and installation orientation."
+    }
+  ],
+  "deck": {
+    "placeable_slots": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "fixed_trash": {
+      "id": "ot2_fixed_trash",
+      "placeable": false,
+      "deck_region": "back-right",
+      "description": "Fixed OT-2 trash location; not a loadable instrument or free deck slot."
+    },
+    "layout_rows_back_to_front": [
+      [
+        10,
+        11,
+        "trash"
+      ],
+      [
+        7,
+        8,
+        9
+      ],
+      [
+        4,
+        5,
+        6
+      ],
+      [
+        1,
+        2,
+        3
+      ]
+    ]
+  },
+  "instruments": [
+    {
+      "id": "p20_single_gen2",
+      "name": "P20 Single-Channel GEN2",
+      "category": "pipette",
+      "generation": "GEN2",
+      "lifecycle": "current",
+      "api_load_name": "p20_single_gen2",
+      "api_method": "protocol.load_instrument",
+      "channels": 1,
+      "min_volume_ul": 1,
+      "max_volume_ul": 20,
+      "mounts": [
+        "left",
+        "right"
+      ],
+      "placement": "mount",
+      "deck_placeable": false,
+      "description": "Single-channel pipette for 1\u201320 \u00b5L transfers.",
+      "docs_url": "https://docs.opentrons.com/python-api/pipettes/loading/"
+    },
+    {
+      "id": "p300_single_gen2",
+      "name": "P300 Single-Channel GEN2",
+      "category": "pipette",
+      "generation": "GEN2",
+      "lifecycle": "current",
+      "api_load_name": "p300_single_gen2",
+      "api_method": "protocol.load_instrument",
+      "channels": 1,
+      "min_volume_ul": 20,
+      "max_volume_ul": 300,
+      "mounts": [
+        "left",
+        "right"
+      ],
+      "placement": "mount",
+      "deck_placeable": false,
+      "description": "Single-channel pipette for 20\u2013300 \u00b5L transfers.",
+      "docs_url": "https://docs.opentrons.com/python-api/pipettes/loading/"
+    },
+    {
+      "id": "p1000_single_gen2",
+      "name": "P1000 Single-Channel GEN2",
+      "category": "pipette",
+      "generation": "GEN2",
+      "lifecycle": "current",
+      "api_load_name": "p1000_single_gen2",
+      "api_method": "protocol.load_instrument",
+      "channels": 1,
+      "min_volume_ul": 100,
+      "max_volume_ul": 1000,
+      "mounts": [
+        "left",
+        "right"
+      ],
+      "placement": "mount",
+      "deck_placeable": false,
+      "description": "Single-channel pipette for 100\u20131000 \u00b5L transfers.",
+      "docs_url": "https://docs.opentrons.com/python-api/pipettes/loading/"
+    },
+    {
+      "id": "p20_multi_gen2",
+      "name": "P20 8-Channel GEN2",
+      "category": "pipette",
+      "generation": "GEN2",
+      "lifecycle": "current",
+      "api_load_name": "p20_multi_gen2",
+      "api_method": "protocol.load_instrument",
+      "channels": 8,
+      "min_volume_ul": 1,
+      "max_volume_ul": 20,
+      "mounts": [
+        "left",
+        "right"
+      ],
+      "placement": "mount",
+      "deck_placeable": false,
+      "description": "Eight-channel pipette for 1\u201320 \u00b5L transfers; works across columns of compatible labware.",
+      "docs_url": "https://docs.opentrons.com/python-api/pipettes/loading/"
+    },
+    {
+      "id": "p300_multi_gen2",
+      "name": "P300 8-Channel GEN2",
+      "category": "pipette",
+      "generation": "GEN2",
+      "lifecycle": "current",
+      "api_load_name": "p300_multi_gen2",
+      "api_method": "protocol.load_instrument",
+      "channels": 8,
+      "min_volume_ul": 20,
+      "max_volume_ul": 300,
+      "mounts": [
+        "left",
+        "right"
+      ],
+      "placement": "mount",
+      "deck_placeable": false,
+      "description": "Eight-channel pipette for 20\u2013300 \u00b5L transfers; works across columns of compatible labware.",
+      "docs_url": "https://docs.opentrons.com/python-api/pipettes/loading/"
+    },
+    {
+      "id": "p10_single",
+      "name": "P10 Single-Channel GEN1",
+      "category": "pipette",
+      "generation": "GEN1",
+      "lifecycle": "legacy",
+      "api_load_name": "p10_single",
+      "api_method": "protocol.load_instrument",
+      "channels": 1,
+      "min_volume_ul": 1,
+      "max_volume_ul": 10,
+      "mounts": [
+        "left",
+        "right"
+      ],
+      "placement": "mount",
+      "deck_placeable": false,
+      "description": "Legacy GEN1 instrument; retained for existing protocols and old hardware.",
+      "docs_url": "https://docs.opentrons.com/ot-2/pipettes/"
+    },
+    {
+      "id": "p50_single",
+      "name": "P50 Single-Channel GEN1",
+      "category": "pipette",
+      "generation": "GEN1",
+      "lifecycle": "legacy",
+      "api_load_name": "p50_single",
+      "api_method": "protocol.load_instrument",
+      "channels": 1,
+      "min_volume_ul": 5,
+      "max_volume_ul": 50,
+      "mounts": [
+        "left",
+        "right"
+      ],
+      "placement": "mount",
+      "deck_placeable": false,
+      "description": "Legacy GEN1 instrument. No equivalent P50 GEN2 pipette exists.",
+      "docs_url": "https://docs.opentrons.com/ot-2/pipettes/"
+    },
+    {
+      "id": "p300_single",
+      "name": "P300 Single-Channel GEN1",
+      "category": "pipette",
+      "generation": "GEN1",
+      "lifecycle": "legacy",
+      "api_load_name": "p300_single",
+      "api_method": "protocol.load_instrument",
+      "channels": 1,
+      "min_volume_ul": 30,
+      "max_volume_ul": 300,
+      "mounts": [
+        "left",
+        "right"
+      ],
+      "placement": "mount",
+      "deck_placeable": false,
+      "description": "Legacy GEN1 instrument; GEN2 replacement has a different supported minimum volume.",
+      "docs_url": "https://docs.opentrons.com/ot-2/pipettes/"
+    },
+    {
+      "id": "p1000_single",
+      "name": "P1000 Single-Channel GEN1",
+      "category": "pipette",
+      "generation": "GEN1",
+      "lifecycle": "legacy",
+      "api_load_name": "p1000_single",
+      "api_method": "protocol.load_instrument",
+      "channels": 1,
+      "min_volume_ul": 100,
+      "max_volume_ul": 1000,
+      "mounts": [
+        "left",
+        "right"
+      ],
+      "placement": "mount",
+      "deck_placeable": false,
+      "description": "Legacy GEN1 instrument; retained for existing protocols and old hardware.",
+      "docs_url": "https://docs.opentrons.com/ot-2/pipettes/"
+    },
+    {
+      "id": "p10_multi",
+      "name": "P10 8-Channel GEN1",
+      "category": "pipette",
+      "generation": "GEN1",
+      "lifecycle": "legacy",
+      "api_load_name": "p10_multi",
+      "api_method": "protocol.load_instrument",
+      "channels": 8,
+      "min_volume_ul": 1,
+      "max_volume_ul": 10,
+      "mounts": [
+        "left",
+        "right"
+      ],
+      "placement": "mount",
+      "deck_placeable": false,
+      "description": "Legacy eight-channel GEN1 instrument.",
+      "docs_url": "https://docs.opentrons.com/ot-2/pipettes/"
+    },
+    {
+      "id": "p50_multi",
+      "name": "P50 8-Channel GEN1",
+      "category": "pipette",
+      "generation": "GEN1",
+      "lifecycle": "legacy",
+      "api_load_name": "p50_multi",
+      "api_method": "protocol.load_instrument",
+      "channels": 8,
+      "min_volume_ul": 5,
+      "max_volume_ul": 50,
+      "mounts": [
+        "left",
+        "right"
+      ],
+      "placement": "mount",
+      "deck_placeable": false,
+      "description": "Legacy eight-channel GEN1 instrument.",
+      "docs_url": "https://docs.opentrons.com/ot-2/pipettes/"
+    },
+    {
+      "id": "p300_multi",
+      "name": "P300 8-Channel GEN1",
+      "category": "pipette",
+      "generation": "GEN1",
+      "lifecycle": "legacy",
+      "api_load_name": "p300_multi",
+      "api_method": "protocol.load_instrument",
+      "channels": 8,
+      "min_volume_ul": 20,
+      "max_volume_ul": 200,
+      "mounts": [
+        "left",
+        "right"
+      ],
+      "placement": "mount",
+      "deck_placeable": false,
+      "description": "Legacy eight-channel GEN1 instrument.",
+      "docs_url": "https://docs.opentrons.com/ot-2/pipettes/"
+    },
+    {
+      "id": "temperature_module_gen1",
+      "name": "Temperature Module GEN1",
+      "category": "module",
+      "family": "temperature_module",
+      "generation": "GEN1",
+      "lifecycle": "legacy",
+      "api_load_name": "temperature module",
+      "api_aliases": [
+        "tempdeck"
+      ],
+      "api_method": "protocol.load_module",
+      "min_api_version": "2.0",
+      "placement": "deck",
+      "deck_placeable": true,
+      "allowed_slots": [
+        1,
+        3,
+        4,
+        6,
+        7,
+        9,
+        10
+      ],
+      "occupied_slots": "single",
+      "max_per_robot": 1,
+      "description": "Legacy temperature-control module. Check the exact hardware generation and installation orientation.",
+      "docs_url": "https://docs.opentrons.com/python-api/modules/setup/"
+    },
+    {
+      "id": "temperature_module_gen2",
+      "name": "Temperature Module GEN2",
+      "category": "module",
+      "family": "temperature_module",
+      "generation": "GEN2",
+      "lifecycle": "current",
+      "api_load_name": "temperature module gen2",
+      "api_method": "protocol.load_module",
+      "min_api_version": "2.3",
+      "placement": "deck",
+      "deck_placeable": true,
+      "allowed_slots": [
+        1,
+        3,
+        4,
+        6,
+        7,
+        9,
+        10
+      ],
+      "occupied_slots": "single",
+      "max_per_robot": 1,
+      "description": "Temperature-control module. OT-2 permitted positions are 1, 3, 4, 6, 7, 9, 10; ports must face outward.",
+      "docs_url": "https://docs.opentrons.com/temperature-module/pre-installation/"
+    },
+    {
+      "id": "magnetic_module_gen1",
+      "name": "Magnetic Module GEN1",
+      "category": "module",
+      "family": "magnetic_module",
+      "generation": "GEN1",
+      "lifecycle": "legacy",
+      "api_load_name": "magnetic module",
+      "api_aliases": [
+        "magdeck"
+      ],
+      "api_method": "protocol.load_module",
+      "min_api_version": "2.0",
+      "placement": "deck",
+      "deck_placeable": true,
+      "allowed_slots": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "occupied_slots": "single",
+      "max_per_robot": 1,
+      "description": "Magnetic separation module. The API supports loading this OT-2 module; verify physical fit, orientation and nearby-labware clearance for the exact installed model before use.",
+      "docs_url": "https://docs.opentrons.com/python-api/modules/setup/",
+      "placement_note": "The current public Python API setup page documents the load name but does not give a restrictive OT-2 slot list. The visualizer therefore exposes standard slots 1\u201311 and defers final physical placement validation to the exact module instructions and official protocol analysis."
+    },
+    {
+      "id": "magnetic_module_gen2",
+      "name": "Magnetic Module GEN2",
+      "category": "module",
+      "family": "magnetic_module",
+      "generation": "GEN2",
+      "lifecycle": "legacy",
+      "api_load_name": "magnetic module gen2",
+      "api_method": "protocol.load_module",
+      "min_api_version": "2.3",
+      "placement": "deck",
+      "deck_placeable": true,
+      "allowed_slots": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "occupied_slots": "single",
+      "max_per_robot": 1,
+      "description": "Magnetic separation module. The API supports loading this OT-2 module; verify physical fit, orientation and nearby-labware clearance for the exact installed model before use.",
+      "docs_url": "https://docs.opentrons.com/python-api/modules/magnetic-module/",
+      "placement_note": "The current public Python API setup page documents the load name but does not give a restrictive OT-2 slot list. The visualizer therefore exposes standard slots 1\u201311 and defers final physical placement validation to the exact module instructions and official protocol analysis."
+    },
+    {
+      "id": "thermocycler_module_gen1",
+      "name": "Thermocycler Module GEN1",
+      "category": "module",
+      "family": "thermocycler",
+      "generation": "GEN1",
+      "lifecycle": "legacy",
+      "api_load_name": "thermocycler module",
+      "api_aliases": [
+        "thermocycler"
+      ],
+      "api_method": "protocol.load_module",
+      "min_api_version": "2.0",
+      "placement": "deck",
+      "deck_placeable": true,
+      "allowed_slots": [
+        7
+      ],
+      "occupied_slots": [
+        7,
+        8,
+        10,
+        11
+      ],
+      "max_per_robot": 1,
+      "description": "Four-slot footprint covering slots 7, 8, 10 and 11. Vent to the rear and preserve required external clearance.",
+      "docs_url": "https://docs.opentrons.com/thermocycler/pre-installation/"
+    },
+    {
+      "id": "thermocycler_module_gen2",
+      "name": "Thermocycler Module GEN2",
+      "category": "module",
+      "family": "thermocycler",
+      "generation": "GEN2",
+      "lifecycle": "current",
+      "api_load_name": "thermocycler module gen2",
+      "api_aliases": [
+        "thermocyclerModuleV2"
+      ],
+      "api_method": "protocol.load_module",
+      "min_api_version": "2.13",
+      "placement": "deck",
+      "deck_placeable": true,
+      "allowed_slots": [
+        7
+      ],
+      "occupied_slots": [
+        7,
+        8,
+        10,
+        11
+      ],
+      "max_per_robot": 1,
+      "description": "Four-slot footprint covering slots 7, 8, 10 and 11. Vent to the rear and preserve required external clearance.",
+      "docs_url": "https://docs.opentrons.com/thermocycler/pre-installation/"
+    },
+    {
+      "id": "heater_shaker_gen1",
+      "name": "Heater-Shaker Module GEN1",
+      "category": "module",
+      "family": "heater_shaker",
+      "generation": "GEN1",
+      "lifecycle": "current",
+      "api_load_name": "heaterShakerModuleV1",
+      "api_method": "protocol.load_module",
+      "min_api_version": "2.13",
+      "placement": "deck",
+      "deck_placeable": true,
+      "allowed_slots": [
+        1,
+        3,
+        4,
+        6,
+        7,
+        10
+      ],
+      "occupied_slots": "single",
+      "max_per_robot": 1,
+      "adjacency_clearance": true,
+      "description": "Heater/shaker module. OT-2 positions: 1, 3, 4, 6, 7, 10; adjacent-slot restrictions apply, especially with tall labware and 8-channel pipettes.",
+      "docs_url": "https://docs.opentrons.com/heater-shaker/preinstall/"
+    }
+  ],
+  "not_included": [
+    {
+      "name": "Flex Pipettes and Flex Gripper",
+      "reason": "Not OT-2-compatible instruments."
+    },
+    {
+      "name": "Magnetic Block, Absorbance Plate Reader, Flex Stacker",
+      "reason": "Python API entries exist, but these are Flex-specific or not supported as OT-2 modules; excluded from this OT-2 deck gallery."
+    },
+    {
+      "name": "HEPA enclosure module",
+      "reason": "OT-2 hardware accessory, but not a load_module deck instrument in the Python API, so it does not occupy a deck slot in this gallery."
+    }
+  ]
+}

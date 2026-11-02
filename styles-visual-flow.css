@@ -1,0 +1,72 @@
+/* Version 4 — canonical hardware → live map → tactile block editor */
+#legacyComposerEngine { display:none!important }
+#instrumentGalleryPanel { margin-top:0 }
+#visualFlowPanel { margin-top:20px }
+.lab-main > .workbench-layout { margin-top:20px }
+.lab-main > #instrumentGalleryPanel { margin-top:0 }
+.hardware-labware {padding:20px;margin:16px 16px 20px;border:1px solid var(--border,#29416b);background:rgba(66,110,177,.055);border-radius:14px}
+.hardware-labware-help {color:var(--muted,#aebed4);margin:9px 0 14px;font-size:14px;line-height:1.6;max-width:1100px}
+.hardware-add-row {display:grid;grid-template-columns:minmax(220px,2fr) minmax(140px,1fr) minmax(110px,.6fr) auto;gap:10px;align-items:end}
+.hardware-add-row label,.hw-lab-card label {font-size:12px;font-weight:700;color:var(--muted,#aebed4);display:grid;gap:6px}
+.hardware-add-row select,.hw-lab-card select,.flow-topbar input,.flow-topbar select,.flow-field select,.flow-field input,.flow-field textarea {color:var(--text,#ecf4ff);border:1px solid #354c72;background:#0d1526;border-radius:8px;padding:10px 11px;min-width:0;font:inherit;max-width:100%}
+html[data-theme="light"] .hardware-add-row select,html[data-theme="light"] .hw-lab-card select,html[data-theme="light"] .flow-topbar input,html[data-theme="light"] .flow-topbar select,html[data-theme="light"] .flow-field select,html[data-theme="light"] .flow-field input,html[data-theme="light"] .flow-field textarea {background:#fff;color:#162b44;border-color:#b8c8df}
+.hardware-labware-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:9px;margin-top:15px}
+.hw-lab-card{display:grid;grid-template-columns:minmax(110px,1fr) minmax(92px,auto) 65px 28px;gap:10px;align-items:center;padding:10px;background:rgba(70,99,149,.10);border:1px solid #3d5276;border-radius:10px;min-width:0;cursor:grab}
+.hw-lab-label{display:flex;gap:8px;align-items:center;min-width:0}
+.hw-lab-label>div{min-width:0}.hw-lab-label strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hw-lab-label small{display:block;color:var(--muted,#aebed4);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hw-lab-icon {color:#79cbdf;font-size:24px}
+.hw-lab-card select{font-size:12px;padding:6px}
+.flow-icon-btn{background:transparent;border:1px solid #596a86;border-radius:7px;color:inherit;cursor:pointer;font-size:20px;width:28px;height:30px}
+.hw-slot-labware{display:block;text-align:center;font-size:10px;line-height:1.3;overflow:hidden}.hw-slot-labware strong{display:block;color:#7acdbb;font-size:11px}.hw-slot-labware small{font-size:9px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hardware-labware-feedback{min-height:18px;margin-top:8px;font-size:12px;color:#83d2b0}.hardware-labware-feedback[data-error="true"]{color:#f39f9f}
+.visual-flow-panel .panel-header {border-bottom:1px solid #27395b}
+.flow-topbar{display:flex;align-items:end;gap:9px;flex-wrap:wrap;padding:14px 17px;background:rgba(73,113,182,.07);border-bottom:1px solid #2f405e}
+.flow-topbar label{display:grid;gap:5px;font-size:12px;color:var(--muted,#aebed4);font-weight:700}.flow-topbar label:first-child{flex:1 1 220px;max-width:370px}.flow-topbar input{width:100%}.flow-import{cursor:pointer}
+.flow-workspace{display:grid;grid-template-columns:minmax(175px,215px) minmax(340px,1fr) minmax(265px,335px);gap:14px;padding:16px;align-items:stretch}
+.flow-palette,.flow-inspector{border:1px solid #354869;border-radius:13px;padding:14px;background:rgba(90,120,175,.05)}
+.flow-palette h3,.flow-canvas-head h3,.flow-inspector h3{font-family:Consolas,monospace;font-size:16px;margin:0 0 6px}.flow-palette>p,.flow-inspector-header>p{font-size:12px;line-height:1.6;color:var(--muted,#b0c0d6);margin:0 0 14px}
+#flowPalette{display:grid;gap:9px}
+.flow-palette-block{color:white;text-align:left;display:flex;align-items:center;gap:9px;border:0;border-radius:9px 11px 11px 9px;padding:13px 12px;cursor:grab;font-size:13px;font-weight:700;letter-spacing:.1px;box-shadow:inset 0 -3px rgba(0,0,0,.15),0 1px 3px rgba(0,0,0,.1);transition:transform .12s ease}
+.flow-palette-block:hover{transform:translateX(3px)}.flow-palette-block span{font-size:16px;opacity:.8}
+.flow-transfer{--block-color:#248bb6}.flow-liquid{--block-color:#298cbe}.flow-tips{--block-color:#ac7835}.flow-motion{--block-color:#875db1}.flow-control{--block-color:#467d55}
+.flow-palette-block.flow-transfer,.flow-block.flow-transfer{--block-color:#2a99a1}.flow-palette-block.flow-liquid,.flow-block.flow-liquid{--block-color:#287cbe}.flow-palette-block.flow-tips,.flow-block.flow-tips{--block-color:#a87733}.flow-palette-block.flow-motion,.flow-block.flow-motion{--block-color:#8255ac}.flow-palette-block.flow-control,.flow-block.flow-control{--block-color:#4b895e}
+.flow-palette-block{background:var(--block-color,#287cbe)}
+.flow-canvas-wrap{min-width:0}.flow-canvas-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:4px 2px 12px}.flow-canvas-head small{color:var(--muted,#b0c0d6)}
+.flow-canvas{border:1px dashed #405778;border-radius:14px;padding:15px;background:linear-gradient(90deg,transparent 19px,rgba(95,120,175,.075) 20px,transparent 21px),linear-gradient(0deg,transparent 19px,rgba(95,120,175,.075) 20px,transparent 21px);background-size:20px 20px;min-height:420px}
+.flow-start,.flow-end{width:fit-content;padding:9px 15px;border:1px solid #536680;background:#1e3047;border-radius:22px;font-family:Consolas,monospace;letter-spacing:.6px;font-size:12px;color:#e0ebff;margin-left:23px}
+.flow-end{background:#263443}
+.flow-blocks{margin-left:21px;max-width:730px}.flow-insert{height:19px;display:flex;align-items:center;justify-content:center;color:#7298c0;cursor:pointer;position:relative;font-size:11px}
+.flow-insert:before{content:"";position:absolute;left:28px;top:0;bottom:0;border-left:3px dashed #536b92}.flow-insert>span{opacity:0;background:#263b5d;padding:2px 12px;border-radius:18px;z-index:1}
+.flow-insert:hover>span,.flow-insert:focus>span,.flow-insert.drop-active>span{opacity:1}.flow-insert.drop-active{background:rgba(105,179,248,.15);outline:1px dashed #9ec9ff}
+.flow-block{--block-color:#287cbe;background:var(--block-color);position:relative;display:flex;align-items:center;gap:10px;border-radius:9px 12px 12px 9px;color:#fff;padding:11px 8px 13px;cursor:grab;box-shadow:inset 0 -4px 0 rgba(0,0,0,.17),0 3px 8px rgba(0,0,0,.12);outline:2px solid transparent;outline-offset:2px;min-height:68px}
+.flow-block:before{content:"";position:absolute;top:-5px;left:30px;width:37px;height:10px;background:var(--block-color);border-radius:6px 6px 2px 2px}
+.flow-block:after{content:"";position:absolute;bottom:-7px;left:30px;width:37px;height:10px;background:var(--block-color);border-radius:1px 1px 6px 6px;z-index:2}
+.flow-block.selected{outline:3px solid #f1d58b}.flow-block-grip{font-size:19px;opacity:.8;padding:0 4px}.flow-block-main{min-width:0;flex:1}.flow-block-title{display:flex;align-items:center;gap:9px}.flow-block-title strong{font-family:Consolas,monospace;font-size:15px}.flow-block-number{font-size:11px;opacity:.83}.flow-block-main small{font-size:11px;display:block;white-space:normal;line-height:1.5;margin-top:4px;opacity:.94}.flow-block-chevron{margin-left:auto;opacity:.85}
+.flow-block-actions{display:flex;align-items:center;gap:4px}.flow-block-actions button{background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.35);color:white;border-radius:6px;width:27px;height:28px;font-size:17px;cursor:pointer}
+.flow-status{font-size:12px;color:var(--muted,#b0c0d6);margin:10px 0 0;min-height:20px}
+.flow-inspector{align-self:start;position:sticky;top:12px;max-height:85vh;overflow:auto}.flow-inspector-header{border-bottom:1px solid #344767;padding-bottom:8px;margin-bottom:12px}
+#flowInspector{display:grid;gap:13px}.flow-field{display:grid;gap:6px;font-size:12px;color:var(--muted,#b0c0d6);font-weight:700}.flow-field select,.flow-field input,.flow-field textarea{font-size:13px;line-height:1.3;width:100%}.flow-input-unit{display:flex;gap:7px;align-items:center}.flow-input-unit span{font-size:12px;color:var(--muted,#b0c0d6)}
+.flow-inspector-actions{display:flex;gap:7px}.flow-field-note{font-size:12px;line-height:1.6}
+.flow-help{margin-top:19px;border-top:1px solid #344767;padding-top:14px;font-size:11px;line-height:1.6;color:var(--muted,#b0c0d6)}.flow-help strong{font-size:12px;color:var(--text,#eaf2ff)}.flow-help p{margin:6px 0 0}.flow-empty{color:var(--muted,#b0c0d6);font-size:13px;line-height:1.7}
+.flow-status-footer{padding:12px 17px;border-top:1px solid #344767;display:grid;gap:7px;color:var(--muted,#b0c0d6);font-size:12px}
+#flowValidation[data-bad="true"]{color:#f29b96}#flowValidation[data-bad="false"]{color:#7cd6ad}#flowValidation ul{padding-left:19px;line-height:1.65;margin:5px 0}
+html[data-theme="light"] .flow-canvas{background-color:#e9f1fc}html[data-theme="light"] .flow-start,html[data-theme="light"] .flow-end{background:#dee6f3;color:#173556}
+@media(max-width:1150px){.flow-workspace{grid-template-columns:180px minmax(320px,1fr)}.flow-inspector{grid-column:1/-1;position:static;max-height:none}.hw-lab-card{grid-template-columns:minmax(85px,1fr) 100px 55px 25px}}
+@media(max-width:700px){.hardware-add-row{grid-template-columns:1fr 1fr}.hardware-add-row label:first-child{grid-column:1/-1}.flow-workspace{grid-template-columns:1fr}.flow-palette{max-width:none}#flowPalette{grid-template-columns:repeat(2,minmax(0,1fr))}.flow-inspector{grid-column:auto}.flow-canvas{padding:12px 8px}.hw-lab-card{grid-template-columns:1fr 90px 55px 25px}.flow-topbar{align-items:stretch}.flow-block-title strong{font-size:13px}}
+
+/* v6: custom devices and stacked hardware */
+.custom-device-maker{border:1px dashed #4c7c98;border-radius:11px;padding:12px;margin:12px 0;background:rgba(39,100,148,.06)}
+.custom-device-maker summary{cursor:pointer;font-size:13px;font-weight:800}
+.custom-device-maker p{font-size:12px;line-height:1.6;color:var(--muted,#adbed4)}
+.custom-device-maker label{display:grid;gap:5px;margin:9px 0;font-size:12px}
+.custom-device-maker input,.custom-device-maker textarea{border:1px solid #405e82;border-radius:7px;background:var(--surface,#111d30);color:var(--text,#f0f4ff);font:inherit;padding:8px;width:100%}
+.hw-lab-card{grid-template-columns:minmax(100px,1fr) minmax(90px,auto) minmax(140px,auto) 65px 28px}
+.flow-palette-block.flow-module,.flow-block.flow-module{--block-color:#a5547e}
+@media(max-width:900px){.hw-lab-card{grid-template-columns:1fr 1fr;gap:8px}.hw-lab-card .flow-icon-btn{justify-self:end}}
+
+/* v6 desktop labware card layouts: avoid five controls squeezing into 3-up cards */
+.hardware-labware-cards{grid-template-columns:repeat(auto-fit,minmax(min(100%,490px),1fr))}
+.hw-lab-card{grid-template-columns:minmax(120px,1fr) 100px 133px 60px 28px;gap:8px}
+@media(max-width:580px){.hw-lab-card{grid-template-columns:1fr 1fr}.hw-lab-label{grid-column:1/-1}.hw-lab-card .flow-icon-btn{justify-self:end}}
+
+.custom-registry-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:9px}.custom-registry-actions label.button{cursor:pointer}.custom-device-maker textarea{width:100%;min-height:64px}

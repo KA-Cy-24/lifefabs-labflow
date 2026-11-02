@@ -1,0 +1,136 @@
+/* Accessible readability + explicit protocol/viewer state. All text uses system fonts; headings remain Consolas-based. */
+:root { --sans: Bahnschrift, "Segoe UI", Arial, sans-serif; }
+body { font-family: Bahnschrift, "Segoe UI", Arial, sans-serif !important; font-size: 16.5px; line-height: 1.62; }
+p, li, input, select, textarea, button { font-family: inherit; }
+input, select, textarea { font-size: 14px; }
+.site-header { min-height: 84px; }
+.top-nav a { font-size: 15px; }
+.header-link { font-size: 14px; }
+.hero-lede { font-size: 18px; }
+.section-aside, .week-card > p:not(.card-kicker), .role-card ul { font-size: 15px; }
+.week-card h3, .role-card h3 { font-size: 23px; }
+.panel-header p { font-size: 14px; line-height: 1.6; }
+.field label, .labware-upload label { font: 650 14px/1.45 Bahnschrift, "Segoe UI", Arial, sans-serif !important; }
+.field input, .field select, .field textarea, .field input[type="number"], input[type="text"], input[type="search"], select, textarea { font-size: 14px; min-height: 42px; }
+.field small, .form-hint, .form-error, .builder-note, .model-note, .cad-disclaimer, .api-footnote { font-size: 13px !important; line-height: 1.58; }
+.form-section-title { font-size: 14px !important; }
+.panel-header h2 { font-size: 22px !important; }
+.protocol-overview { display: grid; gap: 13px; padding: 16px 18px; background: var(--card-2); border-bottom: 1px solid var(--line); border-top: 1px solid var(--line); }
+.protocol-overview-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.protocol-overview-head h3 { margin: 5px 0 4px; font: 700 18px/1.32 var(--display); color: var(--ink); overflow-wrap: anywhere; }
+.protocol-overview-head p { margin: 0; max-width: 760px; font-size: 14px; line-height: 1.55; color: var(--muted); }
+.protocol-sync-badge { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 999px; padding: 8px 11px; background: var(--card); color: var(--muted); font: 700 12px/1.2 var(--mono); letter-spacing: .3px; white-space: nowrap; }
+.protocol-overview[data-state="synced"] .protocol-sync-badge { color: #66d6b4; border-color: color-mix(in srgb,#66d6b4 50%,var(--line)); }
+.protocol-overview[data-state="stale"] .protocol-sync-badge, .protocol-overview[data-state="conflict"] .protocol-sync-badge { color: var(--amber); border-color: color-mix(in srgb,var(--amber) 65%,var(--line)); }
+.protocol-overview[data-state="inspect"] .protocol-sync-badge { color: var(--teal); border-color: var(--teal); }
+.protocol-overview[data-state="error"] .protocol-sync-badge { color: var(--coral); border-color: var(--coral); }
+.protocol-summary-grid { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; }
+.protocol-summary-cell { min-width: 0; padding: 10px 11px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); }
+.protocol-summary-cell span { display: flex; align-items: center; gap: 5px; color: var(--muted); font: 600 11px/1.4 var(--mono); text-transform: uppercase; letter-spacing: .3px; margin-bottom: 5px; }
+.protocol-summary-cell strong { display: block; color: var(--ink-2); font: 600 13.5px/1.45 Bahnschrift, "Segoe UI", Arial, sans-serif; overflow-wrap: anywhere; }
+.hardware-link-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+.hardware-link-copy { min-width: 0; }
+.hardware-link-copy strong { display: block; font: 700 14.5px/1.4 var(--sans); color: var(--ink-2); }
+.hardware-link-copy p { margin: 3px 0 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.hardware-link-row .button { flex: 0 0 auto; }
+.hardware-conflict-list { padding: 10px 12px; border: 1px solid color-mix(in srgb,var(--amber) 60%,var(--line)); border-radius: 8px; background: color-mix(in srgb,var(--amber) 8%,var(--card)); color: var(--amber); font-size: 12px; line-height: 1.55; }
+.hardware-conflict-list ul { margin: 6px 0 0; padding-left: 20px; }
+.hardware-conflict-list[hidden] { display: none; }
+
+/* Help icon buttons: keyboard, touch and hover support; actual explanatory text is supplied via data-help. */
+.field-label-row { display: flex; align-items: center; gap: 6px; min-width: 0; margin-bottom: 5px; position: relative; }
+.field-label-row label, .field-label-row .instrument-search-label { margin: 0 !important; min-width: 0; }
+.info-i { position: relative; display: inline-grid; place-items: center; flex: 0 0 23px; width: 23px; height: 23px; padding: 0; border-radius: 50%; border: 1px solid var(--teal); background: var(--card); color: var(--teal); font: 700 13px/1 Bahnschrift, "Segoe UI", Arial, sans-serif; text-decoration: none; cursor: help; vertical-align: middle; z-index: 20; }
+.info-i:hover, .info-i:focus-visible, .info-i[aria-expanded="true"] { color: var(--paper); background: var(--teal); outline: 2px solid color-mix(in srgb,var(--teal) 25%,transparent); outline-offset: 2px; }
+.help-tooltip { position: fixed; z-index: 10000; max-width: calc(100vw - 24px); padding: 12px 14px; border: 1px solid var(--teal); border-radius: 10px; background: var(--card); color: var(--ink-2); box-shadow: 0 14px 34px rgba(0,0,0,.45); font: 13px/1.58 Bahnschrift, "Segoe UI", Arial, sans-serif; letter-spacing: 0; text-align: left; white-space: normal; overflow-wrap: anywhere; pointer-events: none; }
+.help-tooltip[hidden] { display: none; }
+.form-section-title .info-i { margin-left: 7px; }
+.panel-header h2 + .info-i, .deck-section-heading h3 + .info-i, #instrumentGalleryTitle + .info-i { margin-left: 7px; }
+.tool-help-wrap { display: inline-flex; align-items: center; gap: 5px; position: relative; }
+.panel-kicker { font-size: 12px !important; }
+.legend-row { font-size: 13px; gap: 16px; align-items: center; }
+.legend-dot { width: 10px; height: 10px; }
+.target-card .label, .coordinate-card .label { font-size: 12px !important; }
+.target-name { font-size: 16px; }
+.target-note, .coordinate-frame, .model-note { font-size: 13px !important; }
+.coordinate-grid .coord-value span { font-size: 12px; }
+.coordinate-grid .coord-value strong { font-size: 16px; }
+.range-head { font-size: 13px; }
+.range-head strong { font-size: 12px; }
+.step-chip { font-size: 12px; padding: 8px 10px; }
+.step-chip strong { font-size: 12px; }
+.code-area { font-size: 12px; }
+.analysis-summary h3 { font-size: 15px; }
+.analysis-summary p, .diagnostic-list li { font-size: 13px; }
+.instrument-palette-head h3, .deck-section-heading h3, .instrument-export-head h3 { font-size: 16px !important; }
+.instrument-filter-row button { font-size: 12px; }
+.instrument-search-label { font-size: 13px !important; }
+#instrumentSearch { font-size: 14px; min-height: 42px; }
+.instrument-catalogue { max-height: 770px; }
+.catalog-loading { font-size: 14px; }
+.instrument-catalog-card { padding: 13px; }
+.instrument-card-title { font-size: 14px; }
+.instrument-card-meta { font-size: 13px; }
+.instrument-card-description { font-size: 13px; }
+.instrument-api-name, .instrument-badge, .instrument-quick-place { font-size: 11px; }
+.instrument-source-note { font-size: 12px; }
+.mini-note { font-size: 12px; }
+.mount-label, .instrument-legend { font-size: 11px; }
+.empty-equipment, .instrument-feedback, .instrument-export-head p { font-size: 13px; }
+.placed-gear-label { font-size: 12px; }
+.placed-gear-sub { font-size: 11px; }
+.large-module-tile strong { font-size: 14px; }
+.instrument-recycle-bin strong { font-size: 12px; }
+.instrument-recycle-bin small { font-size: 11px; }
+.instrument-setup-code { font-size: 12px; }
+.instrument-gallery-footnote { font-size: 12px; }
+
+@media (max-width: 1200px) {
+  .protocol-summary-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+@media (max-width: 760px) {
+  .protocol-overview-head, .hardware-link-row { align-items: flex-start; flex-direction: column; }
+  .protocol-summary-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .protocol-overview { padding: 13px; }
+  .protocol-sync-badge { white-space: normal; }
+}
+@media (max-width: 420px) {
+  .protocol-summary-grid { grid-template-columns: 1fr; }
+}
+
+/* Keep contextual help aligned with the catalogue and summary labels. */
+.instrument-card-title-row { display:flex; align-items:flex-start; gap:7px; }
+.instrument-card-title-row .instrument-card-title { flex:1; min-width:0; }
+.instrument-card-info { flex-shrink:0; }
+.instrument-filter-row .info-i { margin-left:auto; }
+.protocol-summary-cell .info-i { flex:0 0 18px; width:18px; height:18px; font-size:11px; }
+.legend-row .info-i { margin-left:auto; }
+@media (max-width:760px) {
+  body { font-size:16px; }
+  .protocol-summary-cell strong { font-size:13px; }
+  .help-tooltip { font-size:13px; }
+}
+
+.timeline-controls .tool-help-wrap { gap:5px; }
+.timeline-controls .tool-help-wrap .info-i { flex-shrink:0; }
+#protocolSyncBadge + .info-i { margin-left:5px; }
+#hardwareLinkTitle + .info-i { margin-left:7px; vertical-align:middle; }
+.heading-help-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0; }
+.heading-help-row > h2, .heading-help-row > h3 { min-width:0; }
+.heading-help-row .info-i { flex:0 0 23px; }
+.hardware-title-help-row { justify-content:flex-start; gap:7px; }
+.hardware-title-help-row > strong { flex:0 1 auto; min-width:0; }
+.protocol-status-help { display:inline-flex; align-items:center; gap:7px; flex:0 0 auto; }
+.protocol-status-help .info-i { flex:0 0 23px; }
+@media(max-width:760px) { .protocol-status-help { align-self:flex-start; } }
+/* Context icons live inside some control groups; restore their compact circular treatment over broad button selectors. */
+.instrument-filter-row button.info-i { flex:0 0 23px; width:23px; height:23px; min-width:23px; padding:0; border:1px solid var(--teal); border-radius:50%; background:var(--card); color:var(--teal); font:700 13px/1 Bahnschrift, "Segoe UI", Arial, sans-serif; }
+.view-switch .tool-help-wrap .info-i { flex:0 0 20px; width:20px; height:20px; min-width:20px; padding:0; border:1px solid var(--teal); border-radius:50%; background:var(--card); color:var(--teal); font:700 11px/1 Bahnschrift, "Segoe UI", Arial, sans-serif; }
+.timeline-controls .tool-help-wrap .info-i { flex:0 0 23px; width:23px; height:23px; min-width:23px; padding:0; }
+
+/* The contextual-help wrapper around the theme toggle should preserve header ordering. */
+.site-header > .tool-help-wrap:has(> [data-theme-toggle]) { order: 2; flex: 0 0 auto; }
+.site-header > .tool-help-wrap:has(> [data-theme-toggle]) > .theme-toggle { margin-left: 0; }
+@media (max-width: 850px) {
+  .site-header > .tool-help-wrap:has(> [data-theme-toggle]) { margin-left: auto; }
+}

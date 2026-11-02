@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <script>try{const t=localStorage.getItem("lifefabs-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#05070d">
+  <meta name="description" content="How to run, publish and validate LifeFabs Fieldnotes.">
+  <title>Setup & validation — LifeFabs Fieldnotes</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles-theme.css">
+  <link rel="stylesheet" href="styles-ui-clarity.css">
+  <script src="js/theme.js" defer></script>
+  <script src="js/tool-guide.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><span><strong>LifeFabs</strong><small>FIELDNOTES / HYBRID LAB</small></span></a>
+    <nav class="top-nav" aria-label="Main navigation"><a href="index.html">Home</a><a href="ot2.html">OT-2 protocol lab</a><a href="food-dyes.html">Food-dye simulation <span class="nav-soon">soon</span></a></nav>
+    <span class="header-chip">PROTOTYPE NOTES</span>
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch to bright theme" aria-pressed="false"><span class="theme-toggle-icon" aria-hidden="true">☼</span><span class="theme-toggle-label">Bright mode</span></button>
+  </header>
+  <main class="placeholder-main">
+    <div class="placeholder-label"><span class="status-dot"></span> DEVELOPER + INSTRUCTOR NOTES</div>
+    <section class="section-block" style="padding-top:20px">
+      <div class="section-heading"><div><p class="eyebrow">SETUP / VALIDATION</p><h1 style="font-size:clamp(2.4rem,6vw,4.2rem);letter-spacing:-.05em;line-height:1.02">Run the site.<br><em>Validate the protocol.</em></h1></div><p class="section-aside">This is a static teaching prototype. It provides useful visualisation and consistency checks, not a certified robot simulator.</p></div>
+      <div class="planned-grid">
+        <article><span class="plan-number">00</span><h3>Switch the theme</h3><p>The dark LifeFabs theme is the default. Use the header control to switch to the bright theme; the selection is stored in this browser.</p></article>
+        <article><span class="plan-number">01</span><h3>Run locally</h3><p>From the site directory run <code>python -m http.server 8000</code>, then visit <code>http://localhost:8000/</code>. Use HTTP because the OT-2 page fetches labware JSON and imports the CAD viewer library.</p></article>
+        <article><span class="plan-number">02</span><h3>Publish</h3><p>Push the directory to GitHub and select the repository root in Settings → Pages. Keep the folder structure intact so scripts, styles, JSON data and assets load at their relative paths.</p></article>
+        <article><span class="plan-number">03</span><h3>Check scripts officially</h3><p>Use the optional local simulation service to run the official Opentrons Python API simulator, then import the protocol in the Opentrons App and confirm its intended software/API version, pipette, labware and calibration before a dry-run.</p></article>
+      </div>
+    </section>
+    <section class="section-block">
+      <div class="section-heading"><div><p class="eyebrow">ACCURACY BOUNDARY</p><h2>What the coordinate view does—and doesn't—claim</h2></div></div>
+      <div class="role-flow">
+        <article class="role-card role-programmer"><span class="role-label">COMPUTED FROM LABWARE DEFINITION</span><h3>Local well target</h3><p>Each bundled labware preset includes centre-bottom coordinates, well depth, and well pitch. A selected <code>.bottom(z=…)</code>, <code>.center()</code>, or <code>.top()</code> target is computed relative to that well.</p></article>
+        <article class="role-card role-operator"><span class="role-label">NOMINAL VISUALISATION FRAME</span><h3>Slot-grid placement</h3><p>The deck drawing uses a nominal slot-grid layout. Optional X/Y/Z fields add a translation to the local frame; they do not model rotation or physical calibration.</p></article>
+        <article class="role-card role-shared"><span class="role-label">REQUIRES THE ACTUAL ROBOT</span><h3>Calibrated motion</h3><p>The official API and robot settings account for deck calibration, pipette offsets, tip length, labware offsets and the installed setup. The web page doesn't model collision-free travel or prove that motion is safe.</p></article>
+      </div>
+      <div class="warning-box"><strong>Physical execution gate</strong><p>Do not use the visualisation as an independent safety check. Validate code and labware in the Opentrons App and perform a controlled dry-run with the actual robot configuration.</p></div>
+      <p style="margin-top:20px"><a class="reference-link" href="https://docs.opentrons.com/python-api/robot-position/" target="_blank" rel="noreferrer">Position API ↗</a> · <a class="reference-link" href="https://docs.opentrons.com/ot-2/calibration/robot-calibration/" target="_blank" rel="noreferrer">Robot calibration ↗</a> · <a class="reference-link" href="https://docs.opentrons.com/python-api/reference/execute-simulate/" target="_blank" rel="noreferrer">Official simulation ↗</a> · <a class="reference-link" href="simulation-service/README.md">Local API service setup ↗</a></p>
+    </section>
+  </main>
+  <footer class="site-footer"><div class="footer-brand"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><strong>LifeFabs Fieldnotes</strong></div><p>Setup notes for the static prototype.</p><div class="footer-links"><a href="README.md">Developer README ↗</a><a href="index.html">Home ↗</a></div></footer>
+</body>
+</html>

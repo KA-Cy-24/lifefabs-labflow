@@ -1,0 +1,13 @@
+{
+  "schema": "lifefabs-food-dye-catalogue-v1",
+  "updated": "2026-11-01",
+  "scope": "Defined pure sodium-salt colourants, not manufacturer-specific blends. Charges are nominal anionic forms; mobility inputs are illustrative rather than experimentally calibrated.",
+  "dyes": [
+    {"id":"e102","eNumber":"E102","name":"Tartrazine","formula":"C16H9N4Na3O9S2","molarMass":534.36,"charge":-3,"color":"#ffd63f","mobility":2.8,"sieving":0.25,"source":"https://pubchem.ncbi.nlm.nih.gov/compound/Tartrazine","note":"Trisodium salt; charge -3 is a simplified aqueous form."},
+    {"id":"e110","eNumber":"E110","name":"Sunset Yellow FCF","formula":"C16H10N2Na2O7S2","molarMass":452.38,"charge":-2,"color":"#ff902c","mobility":2.55,"sieving":0.31,"source":"https://pubchem.ncbi.nlm.nih.gov/compound/17730","note":"Disodium azo dye."},
+    {"id":"e122","eNumber":"E122","name":"Carmoisine / Azorubine","formula":"C20H12N2Na2O7S2","molarMass":502.4,"charge":-2,"color":"#eb4b8e","mobility":2.25,"sieving":0.35,"source":"https://pubchem.ncbi.nlm.nih.gov/compound/19118","note":"Disodium azo dye."},
+    {"id":"e124","eNumber":"E124","name":"Ponceau 4R","formula":"C20H11N2Na3O10S3","molarMass":604.48,"charge":-3,"color":"#e64650","mobility":2.0,"sieving":0.40,"source":"https://pubchem.ncbi.nlm.nih.gov/compound/17466","note":"Trisodium azo dye."},
+    {"id":"e129","eNumber":"E129","name":"Allura Red AC","formula":"C18H14N2Na2O8S2","molarMass":496.43,"charge":-2,"color":"#ee5658","mobility":2.4,"sieving":0.33,"source":"https://pubchem.ncbi.nlm.nih.gov/compound/33258","note":"Disodium azo dye; FD&C Red 40."},
+    {"id":"e133","eNumber":"E133","name":"Brilliant Blue FCF","formula":"C37H34N2Na2O9S3","molarMass":792.9,"charge":-2,"color":"#3487ff","mobility":1.8,"sieving":0.54,"source":"https://pubchem.ncbi.nlm.nih.gov/compound/19700","note":"Disodium triarylmethane dye; FD&C Blue 1."}
+  ]
+}

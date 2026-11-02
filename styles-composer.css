@@ -1,0 +1,92 @@
+/* Protocol composer: compact contextual help and accessible command editing. */
+.composer-start { padding:16px; margin-bottom:15px; border:1px solid var(--line); background:var(--card-2); border-radius:12px; }
+.composer-steps { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; color:var(--muted); font:700 11px/1.45 var(--mono); }
+.composer-steps span { border:1px solid var(--line); border-radius:30px; padding:5px 9px; }
+.composer-mode-choice { margin:0; padding:0; border:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.composer-mode-choice legend { margin-bottom:8px; color:var(--ink-2); font:700 14px var(--sans); }
+.composer-mode-choice label { display:block; padding:13px; border:1px solid var(--line); border-radius:9px; background:var(--card); font:700 13px/1.5 var(--sans); cursor:pointer; }
+.composer-mode-choice label:has(input:checked) { border-color:var(--teal); background:color-mix(in srgb,var(--teal) 7%,var(--card)); }
+.composer-mode-choice input { width:auto; margin-right:6px; accent-color:var(--teal); }
+.composer-mode-choice small { display:block; margin:6px 0 0 21px; font:400 12px/1.45 var(--sans); color:var(--muted); }
+.composer-tip { font:12px/1.6 var(--sans); color:var(--muted); margin:12px 0 0; }
+#sequenceSection[hidden], #quickTransferSection[hidden], .quick-only[hidden] { display:none !important; }
+.sequence-heading h3 { margin:0 0 5px; font-size:17px; }
+.sequence-heading p { color:var(--muted); font-size:12px; line-height:1.6; }
+.sequence-toolbar, .sequence-add { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0; }
+.sequence-add label { font:700 12px var(--sans); color:var(--ink-2); }
+.sequence-add select { flex:1 1 145px; min-width:0; }
+.sequence-list { display:flex; flex-direction:column; gap:9px; max-height:660px; overflow-y:auto; padding:2px 6px 2px 2px; }
+.sequence-row { padding:12px; border:1px solid var(--line); background:var(--card-2); border-radius:10px; }
+.seq-top, .seq-fields { display:flex; flex-wrap:wrap; gap:9px; align-items:end; }
+.seq-top { margin-bottom:7px; }
+.seq-number { display:grid; place-items:center; border:1px solid var(--line); width:26px; height:30px; border-radius:7px; color:var(--teal); font:700 12px var(--mono); }
+.seq-control { display:flex; flex:1 1 105px; min-width:100px; flex-direction:column; gap:4px; margin:0; font:600 11px/1.4 var(--sans); color:var(--muted); }
+.seq-top .seq-control { flex:1 1 170px; }
+.seq-control input, .seq-control select { width:100%; min-width:0; min-height:34px; font:13px var(--sans); }
+.seq-control.seq-message { flex-basis:100%; }
+.seq-buttons { display:flex; gap:3px; align-self:end; }
+.seq-buttons button { width:29px; height:32px; border:1px solid var(--line); background:var(--card); color:var(--ink-2); border-radius:6px; font:700 16px var(--sans); cursor:pointer; }
+.seq-buttons button:hover:not(:disabled) { border-color:var(--teal); color:var(--teal); }
+.seq-buttons button:disabled { opacity:.4; cursor:default; }
+.sequence-empty { font-size:13px; padding:15px; color:var(--muted); border:1px dashed var(--line); border-radius:9px; }
+.reference-guide { border:1px solid var(--line); border-radius:9px; padding:12px 14px; margin-top:14px; }
+.reference-guide summary { font:700 13px/1.5 var(--sans); color:var(--teal); cursor:pointer; }
+.reference-guide-body p { color:var(--ink-2); font:13px/1.65 var(--sans); margin-top:10px; }
+/* One uniform icon size, including places formerly overridden by generic button styles. */
+.info-i, .instrument-filter-row button.info-i, .view-switch .tool-help-wrap .info-i, .timeline-controls .tool-help-wrap .info-i,
+.protocol-summary-cell .info-i, .heading-help-row .info-i, .protocol-status-help .info-i {
+  display:inline-grid; place-items:center; flex:0 0 16px; width:16px; height:16px; min-width:16px; min-height:16px;
+  padding:0; margin:0; border-radius:50%; font:700 10px/1 var(--sans); border:1px solid var(--teal); background:var(--card); color:var(--teal);
+  vertical-align:middle; line-height:1; }
+.heading-help-row, .field-label-row, .protocol-status-help, .tool-help-wrap { gap:5px; align-items:center; }
+.heading-help-row h2, .heading-help-row h3 { margin:0; }
+.form-section-title .info-i, #hardwareLinkTitle + .info-i, #protocolSyncBadge + .info-i { margin-left:4px; }
+.field-label-row { justify-content:flex-start; flex-wrap:nowrap; }
+.field-label-row label { flex:0 1 auto; }
+.instrument-filter-row button.info-i { flex:0 0 16px; align-self:center; margin-left:2px; }
+.mount-label .info-i, .range-head .info-i, .legend-row .info-i { margin-left:4px; }
+@media(max-width:640px) {
+ .composer-mode-choice { grid-template-columns:1fr; }
+ .sequence-list { max-height:none; }
+ .seq-top .seq-control { flex-basis:120px; }
+}
+
+.sequence-file-label { border:1px solid var(--line); border-radius:7px; color:var(--ink-2); padding:8px 11px; background:var(--card); font:700 12px/1.3 var(--sans); cursor:pointer; position:relative; overflow:hidden; }
+.sequence-file-label input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+.sequence-file-label:focus-within { outline:2px solid var(--teal); outline-offset:2px; }
+
+/* Visual blocks workspace: viewer first, hardware immediately below, composer full width. */
+.workbench-layout { display:block !important; }
+.workbench-layout > .sim-panel { width:100%; }
+.composer-under-viewer { margin-top:18px; }
+.composer-under-viewer .builder-panel { width:100%; }
+.composer-under-viewer .panel-body form > .form-section { max-width:none; }
+.composer-under-viewer .form-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.block-workspace-note { padding:13px 16px; border:1px solid var(--line); border-radius:11px; background:var(--card-2); font-size:13px; line-height:1.65; color:var(--ink-2); }
+.block-workspace-note strong { color:var(--teal); margin-right:10px; }
+.sequence-list { max-height:none; overflow:visible; gap:0; padding:0 6px 8px 28px; }
+.block-node { position:relative; margin:0 0 30px; border:2px solid var(--line); border-left:6px solid var(--teal); background:var(--card); border-radius:14px; padding:0; box-shadow:0 4px 12px rgba(0,0,0,.04); }
+.block-node::before { content:''; position:absolute; width:3px; height:30px; background:var(--teal); left:26px; top:-30px; }
+.block-node:first-child::before { height:0; }
+.block-node::after { content:'▼'; position:absolute; bottom:-25px; left:19px; color:var(--teal); font-size:14px; }
+.block-node:last-child::after { content:'END'; left:12px; bottom:-26px; font:700 11px var(--mono); }
+.block-entry { display:flex; align-items:center; gap:12px; padding:12px 15px; }
+.block-grip { cursor:grab; font-size:24px; color:var(--muted); user-select:none; }
+.block-toggle { background:transparent; border:0; text-align:left; color:var(--ink); cursor:pointer; flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.block-toggle strong { font:700 16px var(--sans); }
+.block-toggle small { color:var(--muted); font:12px/1.45 var(--sans); }
+.block-chevron { color:var(--teal); }
+.block-editor { display:none; border-top:1px solid var(--line); padding:12px 15px 16px; }
+.block-expanded .block-editor { display:block; }
+.block-expanded { border-color:var(--teal); }
+.block-dragging { opacity:.5; }
+.block-drop-target { outline:3px dashed var(--teal); outline-offset:3px; }
+.block-pickup { border-left-color:#c3954f; }
+.block-aspirate { border-left-color:#418dc1; }
+.block-dispense { border-left-color:#49a481; }
+.block-drop { border-left-color:#b56d70; }
+.block-mix { border-left-color:#9b78c8; }
+.sequence-add { padding:12px; border:1px solid var(--line); border-radius:10px; background:var(--card-2); }
+.sequence-add select { min-height:40px; }
+@media(max-width:850px) { .composer-under-viewer .form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:540px) { .composer-under-viewer .form-grid { grid-template-columns:1fr; } .block-entry { gap:6px; padding:10px; } .block-toggle strong { font-size:14px; } }

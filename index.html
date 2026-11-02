@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <script>try{const t=localStorage.getItem("lifefabs-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#05070d">
+  <meta name="description" content="LifeFabs weekly simulations and protocol-to-robot learning tools.">
+  <title>LifeFabs Fieldnotes — Hybrid Lab Tools</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles-theme.css">
+  <link rel="stylesheet" href="styles-ui-clarity.css">
+  <script src="js/theme.js" defer></script>
+  <script src="js/tool-guide.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="LifeFabs Fieldnotes home">
+      <img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt="">
+      <span><strong>LifeFabs</strong><small>FIELDNOTES / HYBRID LAB</small></span>
+    </a>
+    <nav class="top-nav" aria-label="Main navigation">
+      <a class="active" href="index.html">Home</a>
+      <a href="ot2.html">OT-2 protocol lab</a>
+      <a href="food-dyes.html">Food-dye simulation</a>
+    </nav>
+    <a class="header-link" href="https://pages.htgaa.org/2026a/course-pages/weeks/index.print.html" target="_blank" rel="noreferrer">Course reference <span aria-hidden="true">↗</span></a>
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch to bright theme" aria-pressed="false"><span class="theme-toggle-icon" aria-hidden="true">☼</span><span class="theme-toggle-label">Bright mode</span></button>
+  </header>
+
+  <main>
+    <section class="hero home-hero">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot"></span> A living collection of weekly lab tools</p>
+        <h1>From digital design<br><em>to physical evidence.</em></h1>
+        <p class="hero-lede">A home for LifeFabs' hybrid labs: simulations, experiment planners, protocol visualisers and shared analysis activities that connect remote programmers with in-person operators.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="ot2.html">Open the OT-2 workbench <span>→</span></a>
+          <a class="button button-quiet" href="#weeks">Browse weekly tools</a>
+        </div>
+        <div class="hero-footnote"><span class="tiny-lock">◎</span> Static, GitHub Pages-friendly prototype · No robot connection required for exploration</div>
+      </div>
+      <div class="hero-art" aria-label="Abstract illustration of a robot moving a pipette between labware">
+        <div class="art-grid"></div>
+        <div class="art-label label-top">DESIGN / BUILD / TEST</div>
+        <svg class="robot-art" viewBox="0 0 560 410" role="img" aria-label="Illustrated pipette gantry, deck slots and liquid-handling path">
+          <defs>
+            <linearGradient id="gantryGrad" x1="0" x2="1"><stop offset="0" stop-color="#f0f3fb"/><stop offset="1" stop-color="#8ea2e0"/></linearGradient>
+            <linearGradient id="plateGrad" x1="0" x2="0.9"><stop offset="0" stop-color="#4e66b8"/><stop offset="1" stop-color="#223a8a"/></linearGradient>
+          </defs>
+          <path d="M72 305 L330 355 L501 267 L242 218 Z" fill="#0d1730" stroke="#536fc2" stroke-width="1.5"/>
+          <path d="M72 305 L72 316 L330 369 L330 355 Z" fill="#080f20"/>
+          <path d="M330 355 L501 267 L501 279 L330 369 Z" fill="#080f20"/>
+          <g opacity="0.96">
+            <path d="M112 296 l47 -24 l55 10 l-47 25 Z" fill="#17264e" stroke="#617acc"/>
+            <path d="M188 312 l47 -24 l55 10 l-47 25 Z" fill="#17264e" stroke="#617acc"/>
+            <path d="M264 328 l47 -24 l55 10 l-47 25 Z" fill="#17264e" stroke="#617acc"/>
+            <path d="M340 316 l47 -24 l55 10 l-47 25 Z" fill="#17264e" stroke="#617acc"/>
+          </g>
+          <path d="M94 83 L420 83 L452 101 L127 101 Z" fill="#7a91d7"/>
+          <path d="M94 83 L127 101 L127 226 L94 209 Z" fill="#334d9e"/>
+          <path d="M127 101 L452 101 L452 226 L127 226 Z" fill="#1d2e66" stroke="#9faef0" stroke-width="2"/>
+          <path d="M94 83 L94 209 L127 226 L127 101 Z" fill="#647bd1" opacity="0.4"/>
+          <path d="M174 104 L397 104 L397 125 L174 125 Z" fill="url(#gantryGrad)"/>
+          <path d="M397 104 L411 111 L411 132 L397 125 Z" fill="#5d73c4"/>
+          <rect x="214" y="110" width="69" height="82" rx="5" fill="#e9eefc" stroke="#7288ce" stroke-width="2"/>
+          <rect x="229" y="124" width="39" height="26" rx="4" fill="#0e1732"/>
+          <path d="M239 151 L259 151 L254 183 L244 183 Z" fill="#f0f3fb" stroke="#8ea2e0" stroke-width="2"/>
+          <path d="M249 183 L249 211" stroke="#f0f3fb" stroke-width="5" stroke-linecap="round"/>
+          <path d="M249 211 L249 244" stroke="#8ba5ff" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="249" cy="249" r="5" fill="#8ba5ff"/>
+          <path d="M249 249 Q295 265 334 300" fill="none" stroke="#8ba5ff" stroke-width="2.5" stroke-dasharray="5 7"/>
+          <circle cx="334" cy="300" r="8" fill="#8ba5ff" fill-opacity="0.2" stroke="#8ba5ff" stroke-width="2"/>
+          <path d="M300 280 L355 290 L378 278 L323 268 Z" fill="url(#plateGrad)" stroke="#d0e1d8" stroke-width="1.5"/>
+          <path d="M300 280 L300 308 L355 319 L355 290 Z" fill="#4058a8"/>
+          <path d="M355 290 L378 278 L378 306 L355 319 Z" fill="#273c82"/>
+          <g fill="#243b81" stroke="#7a90db" stroke-width="1">
+            <ellipse cx="317" cy="282" rx="3" ry="2"/><ellipse cx="329" cy="284" rx="3" ry="2"/><ellipse cx="341" cy="287" rx="3" ry="2"/><ellipse cx="353" cy="289" rx="3" ry="2"/>
+            <ellipse cx="317" cy="291" rx="3" ry="2"/><ellipse cx="329" cy="293" rx="3" ry="2"/><ellipse cx="341" cy="296" rx="3" ry="2"/><ellipse cx="353" cy="298" rx="3" ry="2"/>
+          </g>
+          <path d="M420 160 l35 19 l0 58 l-35 -19 z" fill="#7186d2" opacity="0.7"/>
+          <path d="M420 160 L420 217 L455 237" fill="none" stroke="#d9e0fc" stroke-width="2"/>
+          <g fill="#edf1ff" font-family="monospace" font-size="11" letter-spacing="1.4">
+            <text x="35" y="55">OT-2 / PROTOCOL PREVIEW</text>
+            <text x="350" y="390">X →</text>
+            <text x="32" y="350">Y ↑</text>
+          </g>
+        </svg>
+        <div class="art-label label-bottom">COORDINATES · COMMANDS · EVIDENCE</div>
+        <div class="art-orbit orbit-a"></div><div class="art-orbit orbit-b"></div>
+      </div>
+    </section>
+
+    <section class="value-strip" aria-label="Project principles">
+      <div><span class="strip-index">01</span><strong>Learn by modelling</strong><p>Explore before touching the bench.</p></div>
+      <div><span class="strip-index">02</span><strong>Bridge code to hardware</strong><p>See how commands map to locations.</p></div>
+      <div><span class="strip-index">03</span><strong>Work as a hybrid team</strong><p>Programmers and operators share evidence.</p></div>
+    </section>
+
+    <section class="section-block" id="weeks">
+      <div class="section-heading">
+        <div><p class="eyebrow">THE COURSE LIBRARY</p><h2>Pick a week. Open a tool.</h2></div>
+        <p class="section-aside">Organised around the weekly course rhythm. More experiments can be added without rebuilding the homepage.</p>
+      </div>
+      <div class="week-grid">
+        <article class="week-card week-card-featured">
+          <div class="week-card-top"><span class="week-number">W02</span><span class="tag tag-live"><span class="status-dot"></span> Prototype available</span></div>
+          <div class="week-illustration week-illustration-robot" aria-hidden="true">
+            <svg class="deck-card-svg" viewBox="0 0 340 184" role="img" aria-label="Schematic of the OT-2's eleven deck slots">
+              <path class="deck-outline" d="M42 8 H186 Q194 8 194 16 V45 H291 Q299 45 299 53 V169 Q299 176 291 176 H42 Q34 176 34 168 V16 Q34 8 42 8 Z"/>
+              <g class="deck-slot"><rect x="48" y="17" width="60" height="24" rx="3"/><rect x="123" y="17" width="60" height="24" rx="3"/>
+                <rect x="48" y="50" width="60" height="24" rx="3"/><rect x="123" y="50" width="60" height="24" rx="3"/><rect x="198" y="50" width="60" height="24" rx="3"/>
+                <rect x="48" y="80" width="60" height="24" rx="3"/><rect x="123" y="80" width="60" height="24" rx="3"/><rect x="198" y="80" width="60" height="24" rx="3"/>
+                <rect x="48" y="110" width="60" height="24" rx="3"/><rect x="123" y="110" width="60" height="24" rx="3"/><rect x="198" y="110" width="60" height="24" rx="3"/></g>
+              <g class="slot-label"><text x="78" y="29">10</text><text x="153" y="29">11</text>
+                <text x="78" y="62">7</text><text x="153" y="62">8</text><text x="228" y="62">9</text>
+                <text x="78" y="92">4</text><text x="153" y="92">5</text><text x="228" y="92">6</text>
+                <text x="78" y="122">1</text><text x="153" y="122">2</text><text x="228" y="122">3</text></g>
+              <path class="deck-front" d="M111 151 H160 Q168 151 168 157 Q168 163 160 163 H111 Q103 163 103 157 Q103 151 111 151 Z"/>
+              <text class="deck-meta" x="235" y="19">BACK ↑</text><text class="deck-meta" x="228" y="165">OT-2 / 11 SLOTS</text>
+            </svg>
+          </div>
+          <p class="card-kicker">Electrophoresis · Automation</p>
+          <h3>OT-2 Protocol Lab</h3>
+          <p>Compose a small liquid-handling protocol, inspect a supported Python subset, and visualise tip targets and aspiration/dispense positions.</p>
+          <div class="card-meta"><span>2D / 3D coordinate views</span><span>OT-2 first</span></div>
+          <a class="card-link" href="ot2.html">Enter the workbench <span>↗</span></a>
+        </article>
+        <article class="week-card">
+          <div class="week-card-top"><span class="week-number">W02</span><span class="tag">Design track</span></div>
+          <div class="week-illustration week-illustration-gel" aria-hidden="true"><div class="gel-lanes"><span></span><span></span><span></span><span></span><span></span></div><div class="gel-arrow"></div></div>
+          <p class="card-kicker">Electrophoresis · Frugal lab</p>
+          <h3>Food-dye electrophoresis</h3>
+          <p>A reserved page for dye selection, chemical structures, apparatus parameters, and a migration model grounded in physical measurements.</p>
+          <div class="card-meta"><span>Simulation planned</span><span>Accessible materials</span></div>
+          <a class="card-link" href="food-dyes.html">Launch the interactive simulator <span>↗</span></a>
+        </article>
+        <article class="week-card week-card-muted">
+          <div class="week-card-top"><span class="week-number">W03+</span><span class="tag">Future module</span></div>
+          <div class="week-illustration week-illustration-empty" aria-hidden="true"><div class="empty-ring">+</div><div class="empty-orbit"></div></div>
+          <p class="card-kicker">Expandable by week</p>
+          <h3>Bring another lab online</h3>
+          <p>Keep the landing page modular: add future simulations, experiment worksheets, or protocol tools as separate cards.</p>
+          <div class="card-meta"><span>Static site</span><span>GitHub Pages ready</span></div>
+          <a class="card-link" href="setup.html">Read the setup notes <span>↗</span></a>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-block workflow-section">
+      <div class="section-heading">
+        <div><p class="eyebrow">THE HYBRID MODEL</p><h2>One experiment, complementary roles.</h2></div>
+        <p class="section-aside">The website should connect the remote team's digital design with the in-person team's physical observations—not replace either role.</p>
+      </div>
+      <div class="role-flow">
+        <div class="role-card role-programmer"><span class="role-label">REMOTE CLs · PROGRAMMERS</span><h3>Design + predict</h3><ul><li>Choose wells and transfer plan</li><li>Check code and deck layout</li><li>Predict expected positions</li></ul></div>
+        <div class="role-arrow" aria-hidden="true">→</div>
+        <div class="role-card role-robot"><span class="role-label">SHARED SYSTEM</span><h3>Make the plan explicit</h3><ul><li>Labware + slots</li><li>Python + coordinate trace</li><li>Checks + review prompts</li></ul></div>
+        <div class="role-arrow" aria-hidden="true">→</div>
+        <div class="role-card role-operator"><span class="role-label">IN-PERSON CL · OPERATOR</span><h3>Execute + observe</h3><ul><li>Verify physical setup</li><li>Run approved protocol</li><li>Return evidence + deviations</li></ul></div>
+      </div>
+      <div class="principle-note"><span class="note-icon">i</span><p><strong>Design rule:</strong> the visualiser describes the path implied by supported commands and labware geometry. It does not know the real robot's calibration state or certify a protocol for execution.</p><a href="ot2.html">Explore the coordinate model →</a></div>
+    </section>
+
+    <section class="final-cta">
+      <div><p class="eyebrow">START WITH THE CORE TOOL</p><h2>Make the protocol visible.</h2><p>Prototype a transfer, inspect its coordinate trace, then refine the workflow for LifeFabs' actual OT-2 setup.</p></div>
+      <a class="button button-light" href="ot2.html">Launch OT-2 Protocol Lab <span>→</span></a>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-brand"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><strong>LifeFabs Fieldnotes</strong></div>
+    <p>Educational planning tool · Prototype · Not a substitute for official robot analysis and calibration.</p>
+    <div class="footer-links"><a href="https://docs.opentrons.com/python-api/robot-position/" target="_blank" rel="noreferrer">Position API ↗</a><a href="https://docs.opentrons.com/ot-2/calibration/robot-calibration/" target="_blank" rel="noreferrer">Calibration ↗</a><a href="assets/ot2-quick-start-guide.pdf" target="_blank">OT-2 Quick Start PDF ↗</a></div>
+  </footer>
+</body>
+</html>

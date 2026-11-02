@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "source": "Official Opentrons labware definitions (linked per item); compact geometry subset bundled for educational visualization.",
+  "definitions": [
+    {
+      "loadName": "nest_96_wellplate_200ul_flat",
+      "displayName": "NEST 96 Well Plate 200 µL Flat",
+      "brand": "NEST",
+      "definitionUrl": "https://raw.githubusercontent.com/Opentrons/opentrons/edge/shared-data/labware/definitions/2/nest_96_wellplate_200ul_flat/1.json",
+      "dimensions": {"x": 127.56, "y": 85.36, "z": 14.3},
+      "wellGeometry": {"rows": 8, "columns": 12, "xFirst": 14.28, "yFirst": 74.18, "zBottom": 3.5, "depth": 10.8, "xPitch": 9, "yPitch": 9, "diameter": 6.85, "capacityUL": 200},
+      "custom": false
+    },
+    {
+      "loadName": "opentrons_96_wellplate_200ul_pcr_full_skirt",
+      "displayName": "Opentrons Tough 96 Well Plate 200 µL PCR Full Skirt",
+      "brand": "Opentrons",
+      "definitionUrl": "https://raw.githubusercontent.com/Opentrons/opentrons/edge/shared-data/labware/definitions/2/opentrons_96_wellplate_200ul_pcr_full_skirt/1.json",
+      "dimensions": {"x": 127.76, "y": 85.48, "z": 16.0},
+      "wellGeometry": {"rows": 8, "columns": 12, "xFirst": 14.38, "yFirst": 74.24, "zBottom": 1.05, "depth": 14.95, "xPitch": 9, "yPitch": 9, "diameter": 5.5, "capacityUL": 200},
+      "custom": false
+    },
+    {
+      "loadName": "opentrons_96_tiprack_20ul",
+      "displayName": "Opentrons OT-2 96 Tip Rack 20 µL",
+      "brand": "Opentrons",
+      "definitionUrl": "https://raw.githubusercontent.com/Opentrons/opentrons/edge/shared-data/labware/definitions/2/opentrons_96_tiprack_20ul/1.json",
+      "dimensions": {"x": 127.76, "y": 85.48, "z": 64.69},
+      "wellGeometry": {"rows": 8, "columns": 12, "xFirst": 14.38, "yFirst": 74.24, "zBottom": 25.49, "depth": 39.2, "xPitch": 9, "yPitch": 9, "diameter": 3.27, "capacityUL": 20},
+      "tipRack": true,
+      "custom": false
+    },
+    {
+      "loadName": "opentrons_96_tiprack_300ul",
+      "displayName": "Opentrons OT-2 96 Tip Rack 300 µL",
+      "brand": "Opentrons",
+      "definitionUrl": "https://raw.githubusercontent.com/Opentrons/opentrons/edge/shared-data/labware/definitions/2/opentrons_96_tiprack_300ul/1.json",
+      "dimensions": {"x": 127.76, "y": 85.48, "z": 64.49},
+      "wellGeometry": {"rows": 8, "columns": 12, "xFirst": 14.38, "yFirst": 74.24, "zBottom": 5.39, "depth": 59.3, "xPitch": 9, "yPitch": 9, "diameter": 5.23, "capacityUL": 300},
+      "tipRack": true,
+      "custom": false
+    },
+    {
+      "loadName": "opentrons_96_tiprack_1000ul",
+      "displayName": "Opentrons OT-2 96 Tip Rack 1000 µL",
+      "brand": "Opentrons",
+      "definitionUrl": "https://raw.githubusercontent.com/Opentrons/opentrons/edge/shared-data/labware/definitions/2/opentrons_96_tiprack_1000ul/1.json",
+      "dimensions": {"x": 127.76, "y": 85.48, "z": 97.47},
+      "wellGeometry": {"rows": 8, "columns": 12, "xFirst": 14.38, "yFirst": 74.24, "zBottom": 9.47, "depth": 88.0, "xPitch": 9, "yPitch": 9, "diameter": 7.23, "capacityUL": 1000},
+      "tipRack": true,
+      "custom": false
+    }
+  ]
+}

@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <script>try{const t=localStorage.getItem("lifefabs-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#05070d">
+  <meta name="description" content="LifeFabs OT-2 protocol builder, code inspection and coordinate visualisation prototype.">
+  <title>OT-2 Protocol Lab — LifeFabs Fieldnotes</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles-theme.css">
+  <link rel="stylesheet" href="styles-instrument-gallery.css">
+  <link rel="stylesheet" href="styles-ui-clarity.css">
+  <link rel="stylesheet" href="styles-composer.css">
+  <link rel="stylesheet" href="styles-visual-flow.css">
+  <script src="js/theme.js" defer></script>
+  <script src="js/tool-guide.js" defer></script>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
+  <script type="module" src="js/ot2.js"></script>
+  <script src="js/official-sim-client.js" defer></script>
+</head>
+<body class="lab-body">
+  <header class="site-header lab-header">
+    <a class="brand" href="index.html"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><span><strong>LifeFabs</strong><small>FIELDNOTES / HYBRID LAB</small></span></a>
+    <nav class="top-nav" aria-label="Main navigation"><a href="index.html">Home</a><a class="active" href="ot2.html">OT-2 protocol lab</a><a href="food-dyes.html">Food-dye simulation</a></nav>
+    <a class="header-link" href="https://docs.opentrons.com/" target="_blank" rel="noreferrer">Official documentation ↗</a>
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch to bright theme" aria-pressed="false"><span class="theme-toggle-icon" aria-hidden="true">☼</span><span class="theme-toggle-label">Bright mode</span></button>
+  </header>
+
+  <section class="workbench-hero">
+    <div><p class="eyebrow"><span class="status-dot"></span> WEEK 02 / PROTOCOL VISUALISER</p><h1>Make the robot's next move visible.</h1><p>Configure hardware first, then snap together colorful action blocks. Preview requested well targets and inspect the generated Python in 2D or isometric views. Flex is reserved for a later iteration.</p></div>
+    <div class="hero-status"><span class="tag tag-live">OT-2 / supported subset</span><small>Local browser prototype · no robot connection</small></div>
+  </section>
+
+  <div class="workbench-tabs" role="tablist" aria-label="Protocol work modes">
+    <button id="modeBuild" class="active" role="tab" aria-selected="true" aria-controls="builderMode">01 Build a protocol</button>
+    <button id="modeInspect" role="tab" aria-selected="false" aria-controls="inspectMode">02 Inspect Python <span>upload / paste</span></button>
+  </div>
+
+  <main class="lab-main">
+    <section class="panel instrument-gallery-panel" id="instrumentGalleryPanel" aria-labelledby="instrumentGalleryTitle">
+      <div class="panel-header instrument-gallery-head">
+        <div><span class="panel-kicker">01 · HARDWARE CONFIGURATOR</span><h2 id="instrumentGalleryTitle">Instrument &amp; module gallery</h2><p>Mount pipettes; place labware, tip racks, and compatible modules in deck slots. Move a placed item to reposition it, or drop it in the recycle bin to remove it from this layout.</p></div>
+        <div class="instrument-gallery-actions"><button type="button" class="button button-outline button-small" id="resetInstrumentLayout" title="Clear mounted pipettes and modules; placed labware is managed separately below">Clear mounts &amp; modules</button></div>
+      </div>
+      <div class="instrument-gallery-note"><strong>Canonical hardware state:</strong> The live protocol is derived from the instruments, modules, plates and tip racks placed here. Changes refresh Section 2 and Section 3 immediately. Standard modules expose supported action blocks; custom devices use explicit manual handoffs and never masquerade as supported API modules. <strong>Two different placement rules:</strong> pipettes attach to the left/right gantry mounts; modules occupy deck slots. They are not interchangeable. This is a layout designer, not a calibration tool, and it does not certify collisions or module/labware combinations.</div>
+
+      <section class="hardware-labware" id="hardwareLabwareSection" aria-labelledby="hardwareLabwareTitle">
+        <div class="deck-section-heading"><div><span class="panel-kicker">LABWARE / TIP RACKS · SINGLE SOURCE OF TRUTH</span><h3 id="hardwareLabwareTitle">Place labware and tip racks on the deck</h3></div><span class="mini-note">Placed here → map → blocks → Python</span></div>
+        <p class="hardware-labware-help">You can also mount labware directly onto a supported placed module; the generated Python calls <code>module.load_labware()</code>. Confirm physical fit and adapter requirements in the official docs. Add supported plates and tip racks (up to the 11 available slots). These are actual hardware definitions used in generated code, not independent composer settings. Choose a free deck slot or drag a placed card to another slot in the configurator grid.</p>
+        <div class="hardware-add-row"><label>Labware <select id="hwLabwareType"></select></label><label>Purpose <select id="hwLabwareRole"><option value="source">Source</option><option value="destination">Destination</option><option value="labware">Other labware</option><option value="tips">Tip rack</option></select></label><label>Slot <select id="hwLabwareSlot"></select></label><button class="button button-primary button-small" type="button" id="hwAddLabware">+ Place labware</button></div>
+        <label class="flow-field" style="margin:12px 0;max-width:620px">Import official Opentrons labware definition JSON (plates, reservoirs, tube racks or tips) <input type="file" id="hwOfficialDefinition" accept=".json,application/json"><small>Regular well grids only; uses the supplied official dimensions without guessing. Verify custom labware in Opentrons App.</small></label><div class="hardware-labware-cards" id="hwPlacedLabware" aria-live="polite"></div><div class="hardware-labware-feedback" id="hwLabwareFeedback" role="status"></div>
+      </section>
+      <div class="instrument-gallery-layout">
+        <aside class="instrument-palette" aria-label="Instrument catalogue">
+          <div class="instrument-palette-head"><h3>Instrument plenum</h3><span id="catalogCount" class="tag">Loading catalogue…</span></div>
+          <div class="instrument-filter-row" role="group" aria-label="Filter catalogue">
+            <button type="button" class="active" data-instrument-filter="all">All</button>
+            <button type="button" data-instrument-filter="pipette">Pipettes</button>
+            <button type="button" data-instrument-filter="module">Modules</button>
+          </div>
+          <label class="instrument-search-label" for="instrumentSearch">Search catalogue</label><input id="instrumentSearch" type="search" placeholder="e.g. P300, temperature, thermocycler" autocomplete="off">
+          <div id="instrumentCatalogue" class="instrument-catalogue" aria-live="polite"><p class="catalog-loading">Loading official catalogue…</p></div>
+          <details class="custom-device-maker"><summary>＋ Register a third-party / custom deck device</summary>
+            <p>Custom devices are visual deck occupants and operator handoff targets. They are <strong>not</strong> recognized Opentrons USB modules. No unsupported <code>load_module()</code> call is emitted.</p>
+            <label>Device name<input id="customDeviceName" maxlength="65" placeholder="e.g. external magnetic stirrer"></label>
+            <label>Allowed deck slots<input id="customDeviceSlots" value="1,2,3,4,5,6,7,8,9,10,11" placeholder="e.g. 1,4,7"></label>
+            <label>Device function / integration notes<textarea id="customDevicePurpose" rows="2" placeholder="Manual trigger, external controller, power-off / clearance checks"></textarea></label>
+            <label>Named operator actions (one per line, up to 8)<textarea id="customDeviceActions" rows="3" placeholder="Start external shaker\nStop and verify rotation\nConfirm safe position"></textarea></label>
+            <p>Each named action becomes a selectable composer block. It inserts an explicit operator pause, not an unsupported robot-driver command.</p>
+            <div class="custom-registry-actions"><button type="button" id="registerCustomDevice" class="button button-outline button-small">Register in catalogue</button><button type="button" id="exportCustomDevices" class="button button-outline button-small">Export devices JSON</button><label class="button button-outline button-small">Import JSON <input type="file" id="importCustomDevices" accept=".json,application/json" hidden></label></div>
+          </details>
+          <p class="instrument-source-note">Local JSON catalogue based on official docs. <a href="https://docs.opentrons.com/python-api/pipettes/loading/" target="_blank" rel="noreferrer">Pipette API ↗</a> · <a href="https://docs.opentrons.com/python-api/modules/setup/" target="_blank" rel="noreferrer">Module API ↗</a> · <a href="https://docs.opentrons.com/python-api/deck-slots/" target="_blank" rel="noreferrer">Deck slots ↗</a>. Check API version and the exact hardware generation before physical use.</p>
+        </aside>
+        <div class="instrument-work-area">
+          <div class="instrument-mounts-section">
+            <div class="deck-section-heading"><div><span class="panel-kicker">GANTRY MOUNTS</span><h3>Attached pipettes</h3></div><span class="mini-note">One instrument per mount</span></div>
+            <div class="instrument-mounts">
+              <div class="mount-dropzone" data-drop-mount="left" tabindex="0" role="button" aria-label="Left pipette mount drop target"><span class="mount-label">LEFT MOUNT</span><div class="mount-content" id="mountLeft"><span class="empty-equipment">Drop a pipette here</span></div></div>
+              <div class="mount-dropzone" data-drop-mount="right" tabindex="0" role="button" aria-label="Right pipette mount drop target"><span class="mount-label">RIGHT MOUNT</span><div class="mount-content" id="mountRight"><span class="empty-equipment">Drop a pipette here</span></div></div>
+            </div>
+          </div>
+          <div class="instrument-deck-section">
+            <div class="deck-section-heading"><div><span class="panel-kicker">11-SLOT OT-2 DECK</span><h3>Place deck modules</h3></div><span id="deckUsage" class="mini-note">0 / 11 slots occupied</span></div>
+            <div class="instrument-deck-grid" id="instrumentDeck" aria-label="OT-2 deck slot placement area">
+              <button class="instrument-slot" data-drop-slot="10" style="grid-row:1;grid-column:1" type="button" aria-label="Drop target for slot 10"><span class="instrument-slot-number">10</span><span class="instrument-slot-content">Empty slot</span></button>
+              <button class="instrument-slot" data-drop-slot="11" style="grid-row:1;grid-column:2" type="button" aria-label="Drop target for slot 11"><span class="instrument-slot-number">11</span><span class="instrument-slot-content">Empty slot</span></button>
+              <div class="fixed-trash-instrument" style="grid-row:1;grid-column:3" aria-label="Fixed OT-2 trash; not an available deck slot"><span aria-hidden="true">▤</span><strong>FIXED TRASH</strong><small>Not placeable</small></div>
+              <button class="instrument-slot" data-drop-slot="7" style="grid-row:2;grid-column:1" type="button" aria-label="Drop target for slot 7"><span class="instrument-slot-number">7</span><span class="instrument-slot-content">Empty slot</span></button>
+              <button class="instrument-slot" data-drop-slot="8" style="grid-row:2;grid-column:2" type="button" aria-label="Drop target for slot 8"><span class="instrument-slot-number">8</span><span class="instrument-slot-content">Empty slot</span></button>
+              <button class="instrument-slot" data-drop-slot="9" style="grid-row:2;grid-column:3" type="button" aria-label="Drop target for slot 9"><span class="instrument-slot-number">9</span><span class="instrument-slot-content">Empty slot</span></button>
+              <button class="instrument-slot" data-drop-slot="4" style="grid-row:3;grid-column:1" type="button" aria-label="Drop target for slot 4"><span class="instrument-slot-number">4</span><span class="instrument-slot-content">Empty slot</span></button>
+              <button class="instrument-slot" data-drop-slot="5" style="grid-row:3;grid-column:2" type="button" aria-label="Drop target for slot 5"><span class="instrument-slot-number">5</span><span class="instrument-slot-content">Empty slot</span></button>
+              <button class="instrument-slot" data-drop-slot="6" style="grid-row:3;grid-column:3" type="button" aria-label="Drop target for slot 6"><span class="instrument-slot-number">6</span><span class="instrument-slot-content">Empty slot</span></button>
+              <button class="instrument-slot" data-drop-slot="1" style="grid-row:4;grid-column:1" type="button" aria-label="Drop target for slot 1"><span class="instrument-slot-number">1</span><span class="instrument-slot-content">Empty slot</span></button>
+              <button class="instrument-slot" data-drop-slot="2" style="grid-row:4;grid-column:2" type="button" aria-label="Drop target for slot 2"><span class="instrument-slot-number">2</span><span class="instrument-slot-content">Empty slot</span></button>
+              <button class="instrument-slot" data-drop-slot="3" style="grid-row:4;grid-column:3" type="button" aria-label="Drop target for slot 3"><span class="instrument-slot-number">3</span><span class="instrument-slot-content">Empty slot</span></button>
+              <div id="largeModuleLayer" class="large-module-layer" aria-hidden="true"></div>
+            </div>
+            <div class="instrument-legend"><span><i class="legend-square legend-pipette"></i>Pipette mount</span><span><i class="legend-square legend-module"></i>Deck module</span><span><i class="legend-square legend-overlap"></i>Multi-slot footprint</span></div>
+          </div>
+          <div class="instrument-recycle-row">
+            <div id="instrumentFeedback" class="instrument-feedback" role="status" aria-live="polite">Choose an instrument, then drag it into a mount or compatible slot. Click “Quick place” for an accessible alternative.</div>
+            <div id="instrumentRecycleBin" class="instrument-recycle-bin" data-drop-recycle="true" tabindex="0" role="button" aria-label="Recycle bin. Drop a placed instrument or module here to remove it from the layout."><span class="recycle-icon" aria-hidden="true">♲</span><span><strong>Recycle bin</strong><small>Drop a placed item to remove it</small></span></div>
+          </div>
+          <div class="instrument-exports">
+            <div class="instrument-export-head"><div><h3>Generated hardware setup</h3><p>Mounted pipettes, placed labware/tip racks and modules from this section. The composer generates the action sequence below.</p></div><div class="instrument-export-buttons"><button id="copyInstrumentSetup" class="button button-outline button-small" type="button">Copy Python</button><button id="downloadInstrumentSetup" class="button button-primary button-small" type="button">Download .py</button><button id="downloadInstrumentLayout" class="button button-outline button-small" type="button">Download JSON</button></div></div>
+            <textarea id="instrumentSetupCode" class="code-area instrument-setup-code" readonly spellcheck="false" aria-label="Generated Python instrument and module setup"></textarea>
+          </div>
+          <div class="instrument-gallery-footnote"><strong>Placement caveat:</strong> allowed-slot lists are based on Opentrons OT-2 documentation where explicitly stated. The gallery validates catalogue-level slot occupancy, duplicate module families and basic Heater-Shaker adjacency; it does not model every module/labware height, cable orientation, calibration offset or collision constraint. Use the official Opentrons analyser/simulator before running a protocol.</div>
+        </div>
+      </div>
+    </section>
+
+
+    <div class="workbench-layout">
+      <section class="panel sim-panel" aria-label="Deck and coordinate visualisation">
+        <div class="panel-header"><div><span class="panel-kicker">02 · OT-2 DECK MAP · HARDWARE-LINKED PREVIEW</span><h2 id="visualTitle">OT-2 deck map</h2><p id="visualSubtitle">Live planned hardware configuration and requested block targets · not robot telemetry</p></div><div class="view-switch" role="group" aria-label="Visualisation view"><button class="active" data-view="2d">2D deck</button><button data-view="3d">Isometric</button><button data-view="cad">CAD model</button></div></div>
+        <div class="protocol-overview" id="protocolOverview" data-state="empty" aria-live="polite">
+          <div class="protocol-overview-head">
+            <div>
+              <span class="panel-kicker">ACTIVE PROTOCOL / VIEWER STATE</span>
+              <h3 id="activeProtocolName">No protocol generated yet</h3>
+              <p id="activeProtocolDescription">This panel will identify exactly which generated or inspected plan the viewer currently displays.</p>
+            </div>
+            <span id="protocolSyncBadge" class="protocol-sync-badge">NO PLAN</span>
+          </div>
+          <div class="protocol-summary-grid">
+            <div class="protocol-summary-cell"><span>Robot / API</span><strong id="summaryRobot">OT-2 · API 2.15</strong></div>
+            <div class="protocol-summary-cell"><span>Pipette / mount</span><strong id="summaryPipette">P300 Single-Channel GEN2 · right</strong></div>
+            <div class="protocol-summary-cell"><span>Transfer plan</span><strong id="summaryTransfers">50 µL × 4 transfers</strong></div>
+            <div class="protocol-summary-cell"><span>Source → destination</span><strong id="summaryLabware">Slot 6 A1 → Slot 2 A1</strong></div>
+            <div class="protocol-summary-cell"><span>Target reference</span><strong id="summaryTarget">1 mm above well bottom</strong></div>
+          </div>
+          <div class="hardware-link-row">
+            <div class="hardware-link-copy">
+              <strong id="hardwareLinkTitle">Hardware gallery has not been matched to this protocol</strong>
+              <p id="hardwareLinkDescription">The viewer shows current gallery hardware immediately. In Build mode, a mounted supported pipette also updates the protocol automatically. Module load declarations follow the gallery but remain idle; module operations and labware-on-module placements require manual protocol work.</p>
+            </div>
+            <button type="button" class="button button-outline button-small" id="syncHardwareSettings">Resync pipette</button>
+          </div>
+          <div class="hardware-conflict-list" id="hardwareConflictList" hidden></div>
+        </div>
+        <div class="visualization-container" id="deckVisual">
+          <div class="viz-empty">Place hardware above to see the deck. Add blocks below to visualize action targets.</div>
+          <svg id="deckSvg" viewBox="0 0 760 480" role="img" aria-label="Top-down OT-2 deck map with labware and highlighted target"></svg>
+        </div>
+        <div id="cadPanel" class="hidden">
+          <div class="cad-view" id="cadView"><div id="cadLoading" class="cad-loading">Loading the uploaded OT-2 CAD model…<br><br>If the model does not appear, use the 2D or 3D coordinate view. This viewer loads Three.js from a public CDN.</div></div>
+          <div class="cad-disclaimer">The uploaded STL is shown as a rotatable mechanical reference. Its coordinate frame is not registered to the robot's calibrated deck transform, so the coordinate trace is shown in the adjoining 2D / 3D deck views instead.</div>
+        </div>
+        <div class="legend-row"><span class="legend-item"><i class="legend-dot legend-source"></i>Source plate</span><span class="legend-item"><i class="legend-dot legend-destination"></i>Destination plate</span><span class="legend-item"><i class="legend-dot legend-tips"></i>Tip rack</span><span class="legend-item"><i class="legend-dot legend-trash"></i>Fixed trash</span><span class="legend-item"><i class="legend-dot" style="background:#cf6a55"></i>Active endpoint</span></div>
+        <div class="position-details">
+          <div class="target-card"><div class="label">Selected event</div><div id="targetName" class="target-name">No protocol generated yet</div><div id="targetNote" class="target-note">Generate a transfer to inspect its planned movements. Coordinates refer to the tip target requested by the API, not the pipette carriage motor position.</div></div>
+          <div class="coordinate-card"><div class="label">Target position (mm)</div><div class="coordinate-grid"><div class="coord-value"><span>X</span><strong id="coordX">—</strong></div><div class="coord-value"><span>Y</span><strong id="coordY">—</strong></div><div class="coord-value"><span>Z</span><strong id="coordZ">—</strong></div></div><div id="coordinateFrame" class="coordinate-frame">Coordinate frame: awaiting a generated plan.</div></div>
+        </div>
+        <div class="timeline-controls"><button id="prevStep" class="icon-button" type="button" aria-label="Previous event">←</button><div class="range-wrap"><div class="range-head"><strong id="stepCounter">EVENT 0 / 0</strong><span id="stepLabel">No events</span></div><input id="stepSlider" type="range" min="0" max="0" value="0" step="1" aria-label="Choose protocol event"></div><button id="nextStep" class="icon-button" type="button" aria-label="Next event">→</button></div>
+        <div id="stepChips" class="step-list"></div>
+        <div class="model-note" id="modelNote">The highlighted points are requested tip endpoints, not carriage positions. Dashed lines connect target events only; this view does not calculate a safe transit trajectory. Actual robot-space positions depend on official deck geometry plus current deck, pipette, tip-length and labware calibration.</div>
+      </section>
+    </div>
+
+
+
+
+    <section class="panel visual-flow-panel" id="visualFlowPanel" aria-labelledby="flowTitle">
+      <div class="panel-header"><div><span class="panel-kicker">03 · PROTOCOL COMPOSER · VISUAL BLOCKS</span><h2 id="flowTitle">Snap together your robot's actions</h2><p>Choose a block from the palette. Every block reads the mounted pipettes and placed labware above. Click a block to edit; drag blocks to reorder.</p></div><span class="tag">LIVE PYTHON + DECK</span></div>
+      <div class="flow-topbar"><label>Protocol name <input id="flowName" value="LifeFabs OT-2 visual workflow" maxlength="80"></label><label>API version <select id="flowApi"><option value="2.15">2.15</option><option value="2.20">2.20</option><option value="2.28">2.28</option></select></label><button type="button" id="flowExample" class="button button-outline button-small">Load transfer example</button><button type="button" id="flowClear" class="button button-outline button-small">Clear blocks</button><button type="button" id="flowSave" class="button button-outline button-small">Save workflow</button><label class="flow-import button button-outline button-small">Open JSON<input id="flowLoad" type="file" accept=".json,application/json" hidden></label></div>
+      <p class="flow-help" style="padding:0 16px"><b>OT-2 transfer methods:</b> Use the Transfer block for explicit tip and positioning control, or Distribute / Consolidate blocks for cherry-picked multiwell targets. Official verified liquid classes are <b>Flex only</b>, not available on OT-2; this composer does not generate those commands.</p><div class="flow-workspace">
+        <aside class="flow-palette" aria-label="Protocol block palette"><h3>Block toolbox</h3><p>Click to append or drag into the canvas.</p><div id="flowPalette"></div></aside>
+        <div class="flow-canvas-wrap"><div class="flow-canvas-head"><div><h3>Protocol canvas</h3><small id="flowCount">0 blocks</small></div><button type="button" class="button button-outline button-small" id="flowAddCycle">+ Full transfer cycle</button></div><div id="flowCanvas" class="flow-canvas" role="list" aria-label="Connected protocol action blocks"><div class="flow-start">▶ START · OT-2</div><div id="flowBlocks" class="flow-blocks"></div><div class="flow-end">■ END</div></div><div id="flowStatus" class="flow-status" role="status" aria-live="polite"></div></div>
+        <aside class="flow-inspector" aria-label="Selected block parameters"><div class="flow-inspector-header"><span class="panel-kicker">BLOCK PARAMETERS</span><h3 id="flowInspectorTitle">Select a block</h3><p id="flowInspectorSubtitle">The selected block's parameters appear here, not in a separate protocol form.</p></div><div id="flowInspector"></div><div class="flow-help"><strong>Reference positions</strong><p><b>Bottom + Z</b> is measured upward from the defined well floor; <b>Top + Z</b> is relative to the rim (negative is below); <b>Center</b> is the geometric center. The position is the requested tip target, not a calibrated carriage coordinate.</p><p>Tip pickup chooses a real rack and well/column. Blocks automatically validate that a tip is attached before moving liquid.</p></div></aside>
+      </div>
+      <div class="flow-status-footer"><div id="flowHardwareSummary" aria-live="polite">Waiting for configured hardware…</div><div id="flowValidation" role="alert" aria-live="polite"></div></div>
+    </section>
+
+<div id="legacyComposerEngine" hidden aria-hidden="true">    <div class="composer-under-viewer">
+      <section id="builderMode" class="panel builder-panel" role="tabpanel" aria-labelledby="modeBuild">
+        <div class="panel-header"><div><span class="panel-kicker">PROTOCOL COMPOSER</span><h2>Compose a protocol</h2><p>Snap liquid-handling blocks into an ordered workflow. Select a block to reveal only the parameters it needs.</p></div><span class="tag">OT-2</span></div>
+        <div class="panel-body">
+          <form id="builderForm" autocomplete="off">
+            <div class="composer-start" aria-label="Choose a protocol editing style">
+              <div class="composer-steps"><span>1 · Set up hardware</span><span>2 · Plan liquid actions</span><span>3 · Review code &amp; simulate</span></div>
+              <fieldset class="composer-mode-choice"><legend>How would you like to design?</legend><label><input type="radio" name="composerStyle" value="quick"> Guided batch transfer <small>One recipe repeated across sequential wells.</small></label><label><input type="radio" name="composerStyle" value="sequence" checked> Visual blocks <small>Add, edit, duplicate and reorder individual robot actions.</small></label></fieldset>
+              <p class="composer-tip" id="composerModeHint">Beginner path: choose pipette, plates and slots; select how many transfers you want; press Generate. “4” means four transfers, not a four-step limit.</p>
+            </div>
+            <div class="form-section">
+              <h3 class="form-section-title">Robot + pipette <span>01 / 04</span></h3>
+              <div class="form-grid">
+                <div class="field"><label for="robotType">Robot model</label><select id="robotType"><option value="OT-2" selected>OT-2</option><option value="Flex" disabled>Flex — planned</option></select></div>
+                <div class="field"><label for="apiLevel">API level</label><select id="apiLevel"><option value="2.15" selected>2.15 (OT-2)</option><option value="2.20">2.20 (verify robot SW)</option><option value="2.28">2.28 (verify robot SW)</option></select></div>
+                <div class="field full"><label for="pipetteModel">Pipette</label><select id="pipetteModel"><option value="p20_single_gen2">P20 Single-Channel GEN2 · 1–20 µL</option><option value="p300_single_gen2" selected>P300 Single-Channel GEN2 · 20–300 µL</option><option value="p1000_single_gen2">P1000 Single-Channel GEN2 · 100–1000 µL</option><option value="p20_multi_gen2">P20 8-Channel GEN2 · 1–20 µL</option><option value="p300_multi_gen2">P300 8-Channel GEN2 · 20–300 µL</option></select></div>
+                <div class="field"><label for="mount">Pipette mount</label><select id="mount"><option value="left">Left</option><option value="right" selected>Right</option></select></div>
+                <div class="field quick-only"><label for="targetMode">Target reference</label><select id="targetMode"><option value="bottom" selected>Well bottom + clearance</option><option value="center">Well centre</option><option value="top">Well top</option></select><small>Sets the API location used for aspirate and dispense.</small></div>
+                <div class="field quick-only"><label for="wellClearance">Well-bottom clearance</label><div class="input-inline"><input id="wellClearance" type="number" min="1" max="10" step="0.5" value="1"><span class="input-unit">mm</span></div><small id="wellClearanceHelp">Height above the well bottom; 1–10 mm in this builder.</small></div>
+              </div>
+            </div>
+            <div class="form-section">
+              <h3 class="form-section-title">Labware + deck <span>02 / 04</span></h3>
+              <div class="form-grid">
+                <div class="field full"><label for="sourceLabware">Source labware</label><select id="sourceLabware"></select></div>
+                <div class="field"><label for="sourceSlot">Source slot</label><select id="sourceSlot" class="slot-select"></select></div>
+                <div class="field"><label for="sourceStart">First source well</label><select id="sourceStart"></select></div>
+                <div class="field full"><label for="destLabware">Destination labware</label><select id="destLabware"></select></div>
+                <div class="field"><label for="destSlot">Destination slot</label><select id="destSlot" class="slot-select"></select></div>
+                <div class="field"><label for="destStart">First destination well</label><select id="destStart"></select></div>
+                <div class="field full"><label for="tipSlot">Tip-rack slot</label><select id="tipSlot" class="slot-select"></select><small id="tipRackName">Tip rack is selected automatically for the chosen pipette.</small></div>
+              </div>
+            </div>
+            <div class="form-section" id="quickTransferSection">
+              <h3 class="form-section-title">Transfer design <span>03 / 04</span></h3>
+              <div class="form-grid">
+                <div class="field"><label for="volume">Volume per transfer</label><div class="input-inline"><input id="volume" type="number" min="1" max="1000" step="1" value="50" required><span class="input-unit">µL</span></div></div>
+                <div class="field"><label for="transferCount">Number of transfers / columns</label><input id="transferCount" type="number" min="1" max="96" step="1" value="4" required><small id="transferCountHelp">Separate tip per transfer.</small></div>
+                
+              </div>
+            </div>
+            <div class="form-section" id="sequenceSection" hidden>
+              <div class="sequence-heading"><div><h3>Visual protocol blocks</h3><p>Build your workflow by connecting actions: take tip → aspirate → dispense → discard tip. Add up to 300 blocks; expand one to edit its wells, volume, reference position and tip settings.</p></div></div>
+              <div class="sequence-toolbar"><button class="button button-outline button-small" type="button" id="convertSequence">Create steps from guided batch</button><button class="button button-outline button-small" type="button" id="addTransferCycle">+ Complete transfer cycle</button><button class="button button-outline button-small" type="button" id="clearSequence">Clear commands</button><button class="button button-outline button-small" type="button" id="saveSequence">Save design JSON</button><label class="sequence-file-label" for="loadSequence">Open design JSON<input id="loadSequence" type="file" accept=".json,application/json" aria-label="Open saved composer design JSON"></label></div>
+              <div class="block-workspace-note"><strong>START ↓</strong> Add a complete transfer cycle or choose a block. Each block connects to the next from top to bottom. Drag by its handle to rearrange; click a block to edit its parameters. The viewer and Python refresh automatically.</div><div class="sequence-add"><label for="newActionType">Block palette</label><select id="newActionType"><option value="pickup">Pick up tip</option><option value="aspirate">Aspirate</option><option value="dispense">Dispense</option><option value="mix">Mix</option><option value="airgap">Air gap</option><option value="move">Move tip to well target</option><option value="blowout">Blow out</option><option value="touch">Touch tip</option><option value="delay">Wait / delay</option><option value="pause">Pause for operator</option><option value="drop">Drop tip</option></select><button class="button button-primary button-small" type="button" id="addAction">+ Add action</button></div>
+              <div id="sequenceList" class="sequence-list" aria-live="polite"></div>
+              <p class="form-hint" id="sequenceSummary" role="status">No commands selected.</p>
+              <details class="reference-guide"><summary>What do bottom, centre, top, tip wells and tip changes mean?</summary><div class="reference-guide-body"><p><strong>Aspirate/dispense target:</strong> Bottom + Z mm positions the requested tip target Z mm above the definition's well bottom. Centre refers to the well's geometric centre. Top + Z mm references the well rim; a negative Z goes below the rim. Defaults are not liquid-level sensing or collision guidance.</p><p><strong>Tip well:</strong> an address like A1 in the tip rack. For eight-channel pipettes, select the first row of a whole tip column (A1…A12); the other nozzles engage corresponding wells. One new tip (or column) is required for each pickup command. Drop ends that tip's lifecycle.</p><p><strong>In a sequence:</strong> pick up before moving liquid; aspirate fills the tip, dispense reduces its held volume, mix aspirates and dispenses in the same well, air gap adds air, and blow out expels remaining liquid. Commands are emitted in this exact order, without hidden automatic tip changes. The touch-tip command uses its own offset from the rim and radius fraction; it does not use a bottom/centre/top location.</p><p><strong>Safety:</strong> target coordinates here are nominal labware-definition points, not robot calibration, live nozzle coordinates or validated collision-safe motion. Check well capacities, volumes, labware offsets and Opentrons App analysis on the intended OT-2.</p></div></details>
+            </div>
+            <div class="form-section">
+              <h3 class="form-section-title">Protocol identity</h3>
+              <div class="field"><label for="protocolName">Protocol name</label><input id="protocolName" type="text" value="LifeFabs OT-2 demo transfer" maxlength="70"></div>
+            </div>
+            <div class="form-section">
+              <h3 class="form-section-title">Coordinate frame <span>04 / 04</span></h3>
+              <div class="builder-note">Well coordinates come from bundled Opentrons labware definitions. The drawing uses a slot-1-relative nominal grid. The fields below accept the robot-frame XYZ of slot 1’s front-left-bottom origin (translation only); do not enter values unless that transform is documented for your setup.</div>
+              <div class="form-grid" style="margin-top:12px">
+                <div class="field"><label for="originX">Slot 1 origin X (mm)</label><div class="input-inline"><input id="originX" type="number" step="0.01" placeholder="not set"><span class="input-unit">mm</span></div></div>
+                <div class="field"><label for="originY">Slot 1 origin Y (mm)</label><div class="input-inline"><input id="originY" type="number" step="0.01" placeholder="not set"><span class="input-unit">mm</span></div></div>
+                <div class="field"><label for="originZ">Slot 1 origin Z (mm)</label><div class="input-inline"><input id="originZ" type="number" step="0.01" placeholder="not set"><span class="input-unit">mm</span></div></div>
+                <div class="field"><label for="labwareDefFile">Custom labware JSON</label><input id="labwareDefFile" type="file" accept=".json,application/json"><small>Optional: load an official v2 labware definition for inspection.</small></div>
+              </div>
+              <div id="customDefStatus" class="form-hint" aria-live="polite">No custom labware loaded. Use one of the bundled, source-linked definitions.</div>
+            </div>
+            <div class="form-actions"><button class="button button-primary button-small" id="generateBtn" type="button">Generate Python + refresh viewer <span>→</span></button><button class="button button-outline button-small" id="resetBtn" type="reset">Reset form</button></div>
+            <div id="formError" class="form-error" role="alert"></div>
+            <p class="form-hint">This generates explicit Python for the two-plate/one-tip-rack OT-2 subset. For modules, multiple labware or additional pipettes, extend and verify Python in Inspect mode; they are not automatically emitted from the gallery. It does not test an attached robot or replace Opentrons App analysis.</p>
+          </form>
+        </div>
+      </section>
+
+    </div>
+
+</div>    <div class="lower-grid">
+      <section class="panel code-panel">
+        <div class="panel-header"><div><span class="panel-kicker">SOURCE CODE</span><h2 id="codeTitle">Generated OT-2 Python protocol</h2><p>Edit the example or download the generated file.</p></div><div class="code-toolbar"><button id="copyCode" class="button button-outline" type="button">Copy</button><button id="downloadCode" class="button button-primary" type="button">Download .py</button></div></div>
+        <div id="inspectIntake" class="source-intake hidden"><div class="source-intake-row"><label for="pythonFile"><strong>Upload Python</strong></label><input id="pythonFile" type="file" accept=".py,.txt,text/plain"><button id="loadExample" class="button button-outline button-small" type="button">Load sample</button></div><p>Python → visual viewer: click Analyse code after uploading or pasting a script. The static checker recognises common explicit OT-2 load, pick-up, aspirate, dispense, drop-tip and simple transfer statements. It does not execute Python or the Opentrons API.</p></div>
+        <textarea id="codeEditor" class="code-area" spellcheck="false" aria-label="Opentrons Python protocol editor" autocapitalize="off" autocomplete="off"></textarea>
+        <div class="code-footer"><span><strong id="codeLineCount">0 lines</strong> · <span id="codeApiLabel">API v2.15</span></span><span id="codeState">Generated template · editable</span><span class="kbd">Ctrl/⌘ + Enter</span> analyse</div>
+      </section>
+
+      <section class="panel analysis-panel">
+        <div class="panel-header"><div><span class="panel-kicker">STATIC INSPECTION</span><h2>Protocol checks</h2><p>Python-to-deck interpretation of supported literal commands. Press Analyse code to show the script’s loaded labware, well targets and event trace. Unsupported commands are flagged; use the official simulator for execution checks.</p></div><button id="analyzeCode" class="button button-primary button-small" type="button">Analyse code</button></div>
+        <div class="analysis-body">
+          <div class="analysis-summary"><div id="analysisStatus" class="analysis-status">✓</div><div><h3 id="analysisTitle">Ready to inspect</h3><p id="analysisSubtitle">Generate a protocol or upload a Python file.</p></div></div>
+          <ul id="diagnosticList" class="diagnostic-list"><li><span class="diag-icon">i</span><span>Static inspection checks obvious consistency issues and recognises a limited command subset. It is not a Python interpreter or the official Opentrons protocol analyser.</span></li></ul>
+          <div class="form-actions"><button id="showChecks" class="button button-outline button-small" type="button">What this checker covers</button><a class="button button-outline button-small" href="https://docs.opentrons.com/" target="_blank" rel="noreferrer">Official docs ↗</a></div>
+          <div id="checksExplainer" class="form-hint hidden"><strong>Recognised:</strong> OT-2 robot requirements, literal <span class="inline-code">load_labware</span> calls, a common <span class="inline-code">load_instrument</span> call, literal well references in pick-up/aspirate/dispense/drop-tip and one-source/one-destination <span class="inline-code">transfer</span> calls. <strong>Not executed:</strong> loops, imported helpers, custom functions, runtime state, complex offsets, modules, liquid classes, air gaps, tip overlap calculations, collision checking, and the complete Opentrons Python API. Unsupported code is flagged rather than silently treated as validated.</div>
+          <section class="official-sim-box" aria-labelledby="officialSimTitle">
+            <div class="official-sim-head"><div><h3 id="officialSimTitle">Official Opentrons API simulation</h3><p>Run the current Python file through the Opentrons simulator in an isolated local container.</p></div><span class="tag">Optional service</span></div>
+            <div class="official-sim-controls"><div><label for="simServiceUrl">Local simulation service</label><input id="simServiceUrl" type="url" value="http://127.0.0.1:8010" spellcheck="false" autocomplete="url"></div><button class="button button-outline button-small" id="probeSimService" type="button">Check connection</button></div>
+            <div class="official-sim-actions"><button class="button button-primary button-small" id="runOfficialSim" type="button">Run official simulation</button><button class="button button-outline button-small" id="clearOfficialSim" type="button">Clear log</button></div>
+            <p class="api-footnote">This service is separate from GitHub Pages. It runs the selected code using Opentrons Python API simulation, not on a physical robot. Because protocol code is executable Python, only use a trusted local container setup; do not expose this endpoint publicly without a hardened, isolated deployment.</p>
+            <div id="officialSimStatus" class="official-sim-status" role="status" aria-live="polite">Not connected. Start the optional service in <code>simulation-service/</code>, then check the connection.</div>
+            <pre id="officialSimOutput" class="official-sim-log hidden" aria-label="Official simulation run log"></pre>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <section class="coordinate-explainer">
+      <div><h3>How a target coordinate is derived</h3><p>For a well reference such as <span class="inline-code">plate["A1"].bottom(z=1)</span>, the visualiser takes the well centre-bottom coordinates in the selected labware definition and adds the well-relative z adjustment. The builder also supports <span class="inline-code">.center()</span> and <span class="inline-code">.top()</span>. It then adds the labware's slot-relative placement in the visualiser's deck frame.</p><div class="equation">P<sub>target</sub> = P<sub>slot</sub> + P<sub>well</sub> + ΔP</div><p>For the three standard operations, Δz is the explicit <span class="inline-code">z</span> argument for <span class="inline-code">bottom(z=...)</span>; <span class="inline-code">top()</span> adds the defined well depth. This prototype currently models a limited subset of location expressions.</p></div>
+      <div><h3>What makes robot-space accuracy possible?</h3><p>OT-2 deck coordinates use millimetres, with X to the right, Y toward the back and Z upward. The API resolves labware, pipette/tip geometry and robot calibration to turn a well target into movement. The page can compute well-relative points exactly for bundled definitions, but real deck-space targets still require an exact deck definition and the robot's current calibration/offsets.</p><p style="margin-top:9px"><a class="reference-link" href="https://docs.opentrons.com/python-api/robot-position/" target="_blank" rel="noreferrer">Position API ↗</a> · <a class="reference-link" href="https://docs.opentrons.com/ot-2/calibration/robot-calibration/" target="_blank" rel="noreferrer">Robot calibration ↗</a> · <a class="reference-link" href="https://docs.opentrons.com/ot-2/calibration/labware-offsets/" target="_blank" rel="noreferrer">Labware offsets ↗</a></p></div>
+    </section>
+
+    <div class="warning-box" style="margin:22px 0 0"><strong>Execution safety gate</strong><p>This is an educational protocol builder and visualiser, not a robot controller. Inspect the generated Python, validate the labware definitions and pipette/tips on the actual OT-2, run official protocol analysis/simulation for the intended software version, confirm current robot calibration, and dry-run safely before using expensive samples or reagents. Never rely on a browser visualization alone to rule out collisions.</p></div>
+  </main>
+
+  <footer class="site-footer workbench-footer"><div class="footer-brand"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><strong>LifeFabs Fieldnotes</strong></div><p>Prototype built from the supplied OT-2 Quick Start Guide, STL model and selected Opentrons repository excerpts.</p><div class="footer-links"><a href="assets/ot2-quick-start-guide.pdf" target="_blank">Quick Start PDF ↗</a><a href="https://github.com/Opentrons/opentrons" target="_blank" rel="noreferrer">Opentrons source ↗</a><a href="index.html">Home ↗</a></div></footer>
+  <script src="js/instrument-gallery.js" defer></script>
+  <script src="js/visual-composer-v4.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <script>try{const t=localStorage.getItem('lifefabs-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#05070d">
+  <title>Food Dye Electrophoresis Simulator — LifeFabs Fieldnotes</title>
+  <link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="styles-theme.css"><link rel="stylesheet" href="styles-ui-clarity.css"><link rel="stylesheet" href="styles-food-dyes.css">
+  <script src="js/theme.js" defer></script><script src="js/tool-guide.js" defer></script><script src="js/food-dyes.js" defer></script>
+</head>
+<body>
+<header class="site-header"><a class="brand" href="index.html"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><span><strong>LifeFabs</strong><small>FIELDNOTES / HYBRID LAB</small></span></a><nav class="top-nav" aria-label="Main navigation"><a href="index.html">Home</a><a href="ot2.html">OT-2 protocol lab</a><a class="active" href="food-dyes.html">Food-dye simulation</a></nav><span class="header-chip">PHYSICS-BASED MODEL</span><button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch theme" aria-pressed="false"><span class="theme-toggle-icon">☼</span><span class="theme-toggle-label">Bright mode</span></button></header>
+<main class="dye-main">
+ <section class="dye-hero"><p class="eyebrow">WEEK 02 / FRUGAL ELECTROPHORESIS TRACK</p><h1>Food dye <em>electrophoresis</em> lab</h1><p>Choose real E-number colorants, combine mixtures, set agarose concentration and electric field, then follow simulated bands across the gel. Transparent equations; adjustable, <strong>not experimentally calibrated</strong> dye mobilities.</p></section>
+ <div class="dye-layout">
+  <section class="dye-controls dye-panel" aria-labelledby="conditionsTitle">
+    <h2 id="conditionsTitle">01 · Experiment settings</h2>
+    <div class="dye-fields">
+      <label>Applied voltage <span class="dye-readout" id="voltageOut">80 V</span><input type="range" id="dyeVoltage" min="0" max="180" step="5" value="80"></label>
+      <label>Electrode separation <span class="dye-readout" id="spacingOut">120 mm</span><input type="range" id="dyeSpacing" min="60" max="250" step="5" value="120"></label>
+      <label>Usable gel length <span class="dye-readout" id="lengthOut">70 mm</span><input type="range" id="dyeLength" min="30" max="150" step="5" value="70"></label>
+      <label>Agarose (% w/v) <span class="dye-readout" id="agaroseOut">1.0%</span><input type="range" id="dyeAgarose" min="0.3" max="3" step="0.1" value="1"></label>
+      <label>Run time <span class="dye-readout" id="durationOut">30 min</span><input type="range" id="dyeDuration" min="1" max="120" step="1" value="30"></label>
+      <label>Temperature <span class="dye-readout" id="temperatureOut">22 °C</span><input type="range" id="dyeTemperature" min="10" max="40" step="1" value="22"></label>
+      <label>Gel sieving multiplier <span class="dye-readout" id="sievingOut">1.00×</span><input type="range" id="dyeSieving" min="0" max="3" step="0.1" value="1"></label>
+    </div>
+    <div class="dye-derived" id="dyeDerived" aria-live="polite"></div>
+    <div class="dye-controls-actions"><button class="button button-outline button-small" type="button" id="dyeReset">Reset parameters</button><button class="button button-outline button-small" type="button" id="dyeExport">Export predictions (CSV)</button></div>
+  </section>
+  <section class="dye-panel dye-simulator" aria-labelledby="gelTitle"><div class="dye-panel-title"><div><h2 id="gelTitle">02 · Virtual gel</h2><p>Sample wells at left (cathode −); anionic dyes drift toward right (anode +).</p></div><span class="dye-mode-chip">ILLUSTRATIVE · NOT CALIBRATED</span></div>
+    <div class="dye-canvas-wrap"><canvas id="dyeGelCanvas" width="1040" height="510" role="img" aria-label="Simulated six-lane food dye electrophoresis gel"></canvas></div>
+    <div class="dye-playback"><button type="button" id="dyePlay" class="button button-primary button-small">▶ Play</button><button type="button" id="dyeRestart" class="button button-outline button-small">↺ Start</button><label for="dyeTime">Elapsed time <strong id="dyeTimeText">0.0 min</strong></label><input type="range" id="dyeTime" min="0" max="30" value="0" step="0.1" aria-label="Elapsed simulation time"></div>
+    <div id="dyeWarning" class="dye-warning" role="status"></div>
+    <div class="dye-predictions" id="dyePredictions" aria-live="polite"></div>
+  </section>
+ </div>
+ <section class="dye-panel dye-samples" aria-labelledby="samplesTitle"><div class="dye-panel-title"><div><h2 id="samplesTitle">03 · Build the sample lanes</h2><p>Select pure E-number dyes or build mixtures; a color formulation is not assumed from a product name.</p></div><div class="dye-controls-actions"><button type="button" class="button button-outline button-small" id="dyeDemoMix">Load mixed samples</button><button type="button" class="button button-outline button-small" id="dyePureLanes">One dye per lane</button></div></div><div class="dye-sample-grid" id="dyeSamples"></div></section>
+ <section class="dye-panel dye-catalogue" aria-labelledby="catalogTitle"><h2 id="catalogTitle">04 · Chemical identity &amp; model parameters</h2><p>Reference compounds are defined as sodium salts from PubChem / standardized chemical identities, <strong>not</strong> vendor formulations. Edit the nominal zero-gel mobility and gel-sieving coefficient to explore alternatives or fit your own measured lane distances. Charge state is an approximation; all values in blue-highlighted editable fields are demonstration assumptions.</p><div id="dyeCatalog" class="dye-catalog-grid"></div></section>
+ <section class="dye-panel dye-science" aria-labelledby="modelTitle"><h2 id="modelTitle">05 · Physics, units &amp; limitations</h2>
+  <div class="dye-science-grid"><article><h3>Electric field &amp; migration</h3><p><code>E = V / L<sub>electrodes</sub></code> (V/m). Anionic dyes drift toward the positive electrode:</p><p class="dye-equation"><code>v = |μ<sub>gel</sub>| E</code><br><code>x(t) = x<sub>well</sub> + v t</code></p><p><code>μ<sub>gel</sub> = μ<sub>0</sub> exp(−k c s)</code>, with agarose <code>c</code> in % w/v and editable sieving multiplier <code>s</code>. This exponential attenuation is a <strong>heuristic</strong>, not a validated dye–agarose law.</p></article>
+  <article><h3>Diffusion &amp; band width</h3><p>A Gaussian band uses <code>σ²(t) = σ₀² + 2 D t</code>, with illustrative initial <code>σ₀ = 1.0 mm</code>. For a dilute free-ion approximation <code>D ≈ |μ<sub>gel</sub>| k<sub>B</sub>T / (|z|e)</code> (Einstein relation); this relation ignores gel-specific diffusion hindrance beyond the assumed mobility factor.</p></article>
+  <article><h3>What this does <em>not</em> predict</h3><p>Real bands depend on buffer and pH, ionic strength, heat, electro-osmosis, gel microstructure, staining intensity, batch impurities, interactions, and apparatus geometry. Nominal E-number charge and molecular mass are <strong>not enough</strong> to derive mobility. Band distances here are scenario predictions only; do not use them to design live high-voltage equipment or claim experimentally verified separations.</p></article>
+  </div>
+  <p class="dye-source-line">Chemical identities: <a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank" rel="noreferrer">PubChem</a> and <a href="https://eur-lex.europa.eu/eli/reg/2012/231/oj" target="_blank" rel="noreferrer">EU food-additive specifications</a>. Scientific model and each coefficient are versioned in <code>data/food-dyes.json</code> and <code>js/food-dyes.js</code>. For quantitative comparison, supply measured electrophoretic mobility under the same buffer, gel and temperature.</p>
+ </section>
+</main>
+<footer class="site-footer"><div class="footer-brand"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><strong>LifeFabs Fieldnotes</strong></div><p>Physics-based educational preview · Not a validated electrophoresis apparatus</p><div class="footer-links"><a href="ot2.html">OT-2 Workbench ↗</a></div></footer>
+</body></html>

@@ -1,0 +1,121 @@
+/* LifeFabs Fieldnotes theme layer — dark-first, bright theme optional. */
+:root {
+  color-scheme: dark;
+  --paper:#05070d; --page:#05070d; --card:#0c1222; --card-2:#101a30;
+  --ink:#f0f3fb; --ink-2:#d9e0f4; --muted:#a0abc4; --line:#25345a;
+  --teal:#8ba5ff; --teal-bright:#cbd6ff; --mint:#17254a; --blue:#15244a;
+  --amber:#f1c878; --coral:#ff9587; --shadow:0 18px 48px rgba(0,0,0,.35);
+  --mono:Consolas,'Courier New',monospace; --display:Consolas,'Courier New',monospace;
+  --sans:Bahnschrift,'Segoe UI',Arial,sans-serif;
+}
+html[data-theme="light"] {
+  color-scheme: light;
+  --paper:#f7f8fc; --page:#f7f8fc; --card:#ffffff; --card-2:#edf1fb;
+  --ink:#121a2b; --ink-2:#263454; --muted:#5d6880; --line:#d9e0ef;
+  --teal:#152a68; --teal-bright:#5c79d0; --mint:#e8edfb; --blue:#dfe7fb;
+  --amber:#8f641a; --coral:#a74337; --shadow:0 12px 34px rgba(21,42,104,.10);
+}
+html,body{background:var(--paper);color:var(--ink)}
+body{font-family:var(--sans);}
+h1,h2,h3,h4,h5,h6,.brand strong,.week-card h3,.role-card h3,.analysis-summary h3,.target-name,.section-heading h2,.panel-header h2,.hero h1,.placeholder-hero h1,.final-cta h2,.form-section-title{font-family:var(--display)!important;letter-spacing:normal!important}
+.brand strong{font-size:18px;font-weight:700;letter-spacing:.1px!important}
+.brand small,.eyebrow,.panel-kicker,.panel-header .panel-kicker,.form-section-title span,.week-number,.tag,.card-kicker,.role-label,.plan-number,.footer-links,.code-footer,.form-hint,.field small,.label,.theme-toggle,.nav-soon,.header-chip,.coordinate-frame,.target-card .label,.coordinate-card .label,.range-head strong,.view-switch button,.step-chip strong,.kbd{font-family:var(--mono)!important}
+.site-header{background:color-mix(in srgb,var(--paper) 90%,transparent);border-color:var(--line);backdrop-filter:blur(18px)}
+.top-nav a:hover,.top-nav a.active{background:var(--mint);color:var(--teal)}
+.header-link,.card-link,.reference-link{color:var(--teal)}
+.header-chip{border-color:var(--line);background:var(--card-2);color:var(--teal)}
+.button-primary{background:var(--teal);color:#071020;box-shadow:0 7px 16px rgba(75,105,200,.22)}
+html[data-theme="light"] .button-primary{color:#fff}
+.button-primary:hover{background:var(--teal-bright)}
+.button-quiet,.button-outline,.icon-button{background:var(--card);color:var(--ink-2);border-color:var(--line)}
+.button-quiet:hover,.button-outline:hover,.icon-button:hover{background:var(--card-2);border-color:var(--teal);color:var(--teal)}
+.button-light{background:var(--teal);color:#071020}
+html[data-theme="light"] .button-light{color:#fff}
+.hero-art{background:#080d1b;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.value-strip,.workflow-section,.final-cta,.site-footer,.site-footer.workbench-footer{background:var(--card-2);border-color:var(--line)}
+.value-strip{border-top-color:var(--line);border-bottom-color:var(--line)}
+.value-strip p,.section-aside,.hero-lede,.hero-footnote,.week-card>p:not(.card-kicker),.role-card ul,.site-footer>p,.panel-header p,.analysis-summary p,.target-note,.form-hint,.source-intake p{color:var(--muted)}
+.week-card,.role-card,.panel,.panel-header,.builder-panel,.sim-panel,.code-panel,.analysis-panel,.planned-grid article,.form-section,.source-intake,.coordinate-explainer,.target-card,.coordinate-card,.position-details,.timeline-controls,.step-list,.analysis-body,.labware-upload{background:var(--card);color:var(--ink);border-color:var(--line)}
+.week-card-featured{border-color:var(--teal);box-shadow:0 0 0 1px rgba(139,165,255,.08)}
+.week-illustration-robot{background:#080d1b!important}
+.week-illustration-gel{background:var(--card-2)!important}
+.week-illustration-empty{background:var(--card-2)!important}
+.tag{background:var(--card-2);color:var(--muted);border:1px solid var(--line)}
+.tag-live{background:var(--mint);color:var(--teal);border-color:var(--line)}
+.role-card{background:var(--card);border-color:var(--line)}
+.principle-note,.builder-note,.model-note,.coordinate-explainer{background:var(--card-2);color:var(--ink-2);border-color:var(--line)}
+.principle-note p,.coordinate-explainer p,.model-note{color:var(--muted)}
+.workbench-hero{background:var(--paper);color:var(--ink)}
+.workbench-tabs{background:var(--paper);border-color:var(--line)}
+.workbench-tabs button{color:var(--muted)}
+.workbench-tabs button.active{background:var(--card);color:var(--teal);border-color:var(--line)}
+.lab-main{background:var(--paper)}
+.field input,.field select,.field textarea,.field input[type="number"],input[type="text"],input[type="url"],select,textarea{background:var(--paper);color:var(--ink);border-color:var(--line)}
+.field input:focus,.field select:focus,.field textarea:focus,input:focus,select:focus,textarea:focus{border-color:var(--teal);outline-color:var(--teal)}
+.form-error{background:color-mix(in srgb,var(--coral) 10%,var(--card));color:var(--coral);border-color:color-mix(in srgb,var(--coral) 45%,var(--line))}
+.view-switch{background:var(--card-2)}
+.view-switch button{color:var(--muted)}
+.view-switch button.active{background:var(--card);color:var(--teal);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.visualization-container,.cad-view,.cad-loading{background:#080d19;color:var(--ink-2)}
+.coord-value,.step-chip,.diagnostic-list li,.code-footer,.source-intake,.inline-code,.kbd{background:var(--card-2);border-color:var(--line);color:var(--ink-2)}
+.step-chip.active{background:var(--mint);color:var(--teal);border-color:var(--teal)}
+.code-area{background:#060914;color:#e5ebff;border-color:var(--line)}
+.coordinate-explainer{border:1px solid var(--line)}
+.analysis-status{background:var(--mint);color:var(--teal)}
+.analysis-status.warn{background:color-mix(in srgb,var(--amber) 12%,var(--card));color:var(--amber)}
+.cad-disclaimer{background:color-mix(in srgb,var(--amber) 12%,var(--card));color:var(--amber);border-color:var(--line)}
+.warning-box{background:color-mix(in srgb,var(--amber) 9%,var(--card));color:var(--ink-2);border-color:color-mix(in srgb,var(--amber) 40%,var(--line))}
+.warning-box p{color:var(--muted)}
+.dye-preview{background:#080d1b;color:var(--ink)}
+.placeholder-main{color:var(--ink)}
+.theme-toggle{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:8px 11px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink-2);font-size:10px;letter-spacing:.2px;white-space:nowrap;min-height:36px}
+.theme-toggle:hover{border-color:var(--teal);color:var(--teal);background:var(--card-2)}
+.theme-toggle-icon{font-size:14px;line-height:1}
+.brand-logo{width:34px;height:34px;display:block;object-fit:contain;flex-shrink:0}
+.footer-brand .brand-logo{width:27px;height:27px}
+.brand{gap:11px}
+.theme-toggle{margin-left:0}
+.site-header .theme-toggle{flex-shrink:0}
+.deck-card-svg{display:block;width:min(100%,350px);height:100%;max-height:150px;margin:auto}
+.deck-card-svg .deck-outline{fill:#0a1020;stroke:#9aade9;stroke-width:1.4}
+.deck-card-svg .deck-slot{fill:#15244a;stroke:#8399e2;stroke-width:1}
+.deck-card-svg .slot-label{fill:#f0f3fb;font:700 13px Consolas,'Courier New',monospace;text-anchor:middle;dominant-baseline:middle}
+.deck-card-svg .deck-meta{fill:#a0abc4;font:9px Consolas,'Courier New',monospace;letter-spacing:1.1px}
+.deck-card-svg .deck-front{fill:none;stroke:#8399e2;stroke-width:1.4}
+.official-sim-box{margin-top:18px;padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--card-2)}
+.official-sim-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:9px}
+.official-sim-head h3{font:700 13px var(--display);margin:0 0 5px}
+.official-sim-head p,.official-sim-copy{font-size:10px;line-height:1.55;color:var(--muted);margin:0}
+.official-sim-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;margin-top:12px}
+.official-sim-controls label{display:block;font:10px var(--mono);color:var(--muted);margin-bottom:5px}
+.official-sim-controls input{width:100%;min-width:0;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:9px 10px;font:11px var(--mono)}
+.official-sim-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.official-sim-status{padding:9px 10px;border:1px solid var(--line);border-radius:7px;margin-top:10px;color:var(--muted);font-size:10px;line-height:1.55;background:var(--card)}
+.official-sim-status[data-state="success"]{color:var(--teal);border-color:var(--teal)}
+.official-sim-status[data-state="error"]{color:var(--coral);border-color:var(--coral)}
+.official-sim-log{margin:10px 0 0;padding:10px;max-height:240px;overflow:auto;background:#060914;border:1px solid var(--line);border-radius:8px;color:#dbe5ff;font:10px/1.55 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.api-footnote{font-size:10px;color:var(--muted);margin:8px 0 0;line-height:1.55}
+@media(max-width:1150px){.theme-toggle{padding:7px 9px}.brand-logo{width:31px;height:31px}}
+@media(max-width:850px){.theme-toggle{margin-left:auto}.site-header .brand{order:0}.site-header .theme-toggle{order:2}.site-header .top-nav{order:3}.site-header .header-chip{margin-left:auto}.site-header .header-link{display:none}}
+@media(max-width:560px){.brand-logo{width:29px;height:29px}.brand strong{font-size:16px}.theme-toggle{font-size:9px;padding:7px 8px}.theme-toggle-label{display:none}.official-sim-controls{grid-template-columns:1fr}.deck-card-svg .slot-label{font-size:12px}}
+
+/* Contrast cleanup for the original workbench component layer. */
+.field label,.labware-upload label{color:var(--ink-2)}
+.field small,.form-section-title span,.input-unit,.dye-preview-caption,.coordinate-frame,.disabled-note{color:var(--muted)}
+.placeholder-label{background:var(--card-2);color:var(--teal);border:1px solid var(--line)}
+.dye-electrode{background:var(--card-2);color:var(--ink);border:1px solid var(--line)}
+.dye-gel{background:linear-gradient(135deg,#101a37,#1c3170);border:1px solid var(--line)}
+.dye-preview-caption{color:var(--muted)}
+.diag-icon{color:var(--teal)}
+.diagnostic-list li{background:var(--card-2);border-color:var(--line);color:var(--ink-2)}
+.slot-conflict{color:var(--coral)}
+.coordinate-explainer code,.warning-box code,.model-note code{background:color-mix(in srgb,var(--teal) 12%,var(--card));color:var(--ink-2);border:1px solid var(--line);border-radius:4px;padding:1px 4px}
+.site-header .brand-logo{background:transparent}
+.week-card h3,.role-card h3,.planned-grid article h3{color:var(--ink)}
+.footer-brand strong{color:var(--ink)}
+html[data-theme="light"] .deck-card-svg .deck-outline{fill:#eef2fb;stroke:#53699c}
+html[data-theme="light"] .deck-card-svg .deck-slot{fill:#dfe7fb;stroke:#53699c}
+html[data-theme="light"] .deck-card-svg .slot-label{fill:#152a68}
+html[data-theme="light"] .deck-card-svg .deck-meta{fill:#53617f}
+html[data-theme="light"] .deck-card-svg .deck-front{stroke:#53699c}
+html[data-theme="light"] .official-sim-log{background:#111a2f;color:#e9efff}
