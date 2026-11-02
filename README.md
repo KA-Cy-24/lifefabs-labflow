@@ -1,10 +1,10 @@
-# LifeFabs Fieldnotes — hybrid lab tools
+# LifeFabs Fieldnotes (Labflow) — Laboratory Automation and Simulation Tools
 
-A static, GitHub Pages-friendly prototype for the LifeFabs weekly course. The current priority is the OT-2 protocol workbench and instrument-layout gallery; food-dye electrophoresis now has an interactive, physics-based educational simulator with editable parameters, explicitly not experimentally calibrated.
+LifeFabs Fieldnotes, or Lifefabs Labflow, is an open, browser-based collection of educational tools for laboratory automation, protocol design, and experimental simulation. It includes a hardware-linked Opentrons OT-2 protocol workbench and an interactive food-dye electrophoresis model. The platform is designed for teaching, exploratory planning, and collaborative review; it is not a substitute for validated instrument-control software or experimental calibration.
 
-## What's included
+## Platform components
 
-- `index.html` — landing page and week-based module catalogue.
+- `index.html` — homepage and course-module catalogue.
 - `ot2.html` — OT-2 protocol builder, static code inspector, 2D deck view, isometric coordinate projection, step timeline, and rotatable view of the supplied STL reference model.
 - `food-dyes.html` — six E-number colorants, interactive gel visualization, six mixture lanes, drift/diffusion model, and CSV export; not calibrated against measured dye mobility.
 - `js/visual-composer-v4.js` + `styles-visual-flow.css` — **current** colored connected-block authoring model, placed labware state, live hardware-linked Python generation and timeline.
@@ -17,15 +17,15 @@ A static, GitHub Pages-friendly prototype for the LifeFabs weekly course. The cu
 - `simulation-service/` — optional FastAPI service + container sandbox that calls the official `opentrons.simulate.simulate()` entry point.
 - `data/labware-presets.json` — compact geometry extracts from official Opentrons labware definition JSONs. Each entry links to its source definition.
 - `examples/minimal_ot2_transfer.py` — small example protocol for code inspection.
-- `assets/` — the OT-2 quick-start PDF and detailed STL supplied for this prototype.
+- `assets/` — OT-2 quick-start documentation and a reference STL model.
 
 ## Theme and logos
 
-The site defaults to a black/navy/white dark theme. The header toggle switches to a bright theme and remembers the preference in local storage. Headings use Consolas where available; body copy uses Bahnschrift with Segoe UI and Arial fallbacks if Bahnschrift is unavailable. The supplied LifeFabs light mark is used on dark backgrounds and the navy mark on bright backgrounds.
+The site defaults to a black/navy/white dark theme. The header toggle switches to a bright theme and remembers the preference in local storage. Headings use Consolas where available; body copy uses Bahnschrift with Segoe UI and Arial fallbacks if Bahnschrift is unavailable. The LifeFabs light mark appears on dark backgrounds and the navy mark on bright backgrounds.
 
-## Optional full Opentrons API simulation
+## Optional Opentrons API simulation service
 
-The front-end supports an optional local simulation service. GitHub Pages cannot execute Python protocols: use the service in `simulation-service/` to run protocol code with the published Opentrons Python API inside a container sandbox. The service uses `opentrons.simulate.simulate` and pins the runtime to API package 9.0.0 for OT-2 simulation compatibility. The latest `edge`/9.1.x source has changed OT-2 handling and the current generic simulator rejects OT-2-targeted scripts, so it is not the correct runtime for this OT-2-only first release. The browser's existing static inspector remains a fast partial view; the official simulation provides full API execution semantics supported by the pinned simulator package, but it still does not certify physical collision safety or robot calibration.
+The front-end supports an optional local simulation service. GitHub Pages cannot execute Python protocols: use the service in `simulation-service/` to run protocol code with the published Opentrons Python API inside a container sandbox. The service uses `opentrons.simulate.simulate` and pins the runtime to API package 9.0.0 for OT-2 simulation compatibility. Newer simulator releases may change OT-2 compatibility; verify supported versions before changing the pinned runtime. The browser's existing static inspector remains a fast partial view; the official simulation provides full API execution semantics supported by the pinned simulator package, but it still does not certify physical collision safety or robot calibration.
 
 Start steps and security limitations are documented in [`simulation-service/README.md`](simulation-service/README.md). The service binds to loopback by default and should not be exposed publicly as-is.
 
@@ -39,19 +39,13 @@ python -m http.server 8000
 
 Then open <http://localhost:8000/>.
 
-## Publish with GitHub Pages
+## Visual protocol composer and hardware synchronization
 
-1. Commit the site contents to a repository.
-2. In **Settings → Pages**, select deployment from the branch and choose the repository root (or `/docs` if you move the files there).
-3. Open the published URL and test the homepage, protocol builder, code download, and CAD view. The CAD view needs network access to the configured Three.js CDN; the 2D and isometric SVG views do not.
+The primary protocol-authoring interface is a visual, block-based composer. A separate visual authoring model in `js/visual-composer-v4.js` generates the Build-mode Python and timeline directly from canonical hardware placements and colored action blocks. The older `builderForm` DOM is retained, hidden, only as a compatibility bridge for legacy code-inspection/viewer helpers; it is **not** a competing authoring source. Build mode uses the visual composer as its authoring source; compatibility code does not override its generated output.
 
-## Visual workflow v4 — 26 October 2026 (current interface)
+The OT-2 workbench is organized into three linked sections:
 
-**The earlier left-hand form-driven composer and its guided/sequence selector are no longer displayed.** A separate visual authoring model in `js/visual-composer-v4.js` generates the Build-mode Python and timeline directly from canonical hardware placements and colored action blocks. The older `builderForm` DOM is retained, hidden, only as a compatibility bridge for legacy code-inspection/viewer helpers; it is **not** a competing authoring source. The old legacy generator is prevented from overwriting the v4 output in Build mode.
-
-The main OT-2 page now follows this exact hierarchy:
-
-1. **Hardware Configurator** — place pipettes on either gantry mount, place any supported plate/tip-rack preset into free deck slots, and drag/place supported modules. A fresh browser starts with a clearly visible demo P300 on the right and three example labware placements (source S6, destination S2, 300-µL tip rack S3). Existing saved layouts are respected; resetting the gallery does not secretly recreate the pipette.
+1. **Hardware Configurator** — place pipettes on either gantry mount, place any supported plate/tip-rack preset into free deck slots, and drag/place supported modules. An initial demonstration configuration includes a P300 on the right and three labware placements (source S6, destination S2, 300-µL tip rack S3). Previously saved layouts are preserved, and resetting the gallery clears the configuration.
 2. **OT-2 Deck Map** — the 2D/isometric SVG uses **the exact current placed labware and gallery modules**, not historical builder field values. A newly placed/moved/removed item redraws the map immediately. The event trace follows the most recent valid visual blocks; when a design is invalid, hardware remains visible but Python generation is blocked. The CAD/STL view remains only an uncalibrated mechanical reference.
 3. **Visual Protocol Composer** — a Scratch-inspired palette, color-coded connected blocks, insertion targets and a selected-block parameter inspector. Click blocks to select, drag blocks/inserts to arrange order, or use keyboard-accessible Up/Down buttons. Available block types: self-contained transfer, pick-up tip, aspirate, dispense, mix, air gap, blow out, touch tip, move to well, drop tip, wait and operator pause. The **complete transfer** block generates four explicit robot commands. Each new complete-transfer block suggests the next available tip and well by default. Blocks can be duplicated/removed, workflows saved to JSON and reopened.
 
@@ -61,7 +55,7 @@ The main OT-2 page now follows this exact hierarchy:
 - Every successful Build-mode regeneration emits **exactly the instruments, modules, labware and tip racks currently placed in Section 1**, followed by the configured block commands. The hardware setup excerpt and JSON export also include placed labware. Both sources are derived from the same front-end hardware snapshot.
 - Changing a mounted pipette, deck module, labware, tip rack, block type/order/parameter or API version triggers synchronous regeneration and redraw. Removing required hardware or introducing a conflict prevents a downloadable-looking valid protocol from silently retaining obsolete Python; a blocking message replaces the generated source until corrected.
 - Multiple mounted supported GEN2 pipettes, multiple plates and compatible tip racks may be declared in the same protocol. Each block explicitly chooses a mounted pipette and one of the placed targets. A `transfer` block uses one pickup/aspirate/dispense/drop cycle; individual blocks offer manual tip lifecycle and richer liquid-handling sequences.
-- A module is **loaded but idle**. This version does not mount labware on modules or model module control actions, temperature/shaking/magnet sequences, conditional branches, loops, custom labware definitions or full Opentrons Python execution. Incompatible or missing labware, stale pipettes, duplicated used tips, excessive volumes and some invalid step orders are flagged, but this is **not a general-purpose validated protocol compiler**.
+- The block-based composer supports a documented subset of module operations and labware-on-module arrangements (see below). It does not support arbitrary Python control flow or unrestricted third-party device actuation. Incompatible or missing labware, stale pipettes, duplicated used tips, excessive volumes and some invalid step orders are flagged, but this is **not a general-purpose validated protocol compiler**.
 - In **Inspect Python** mode, uploaded/edited Python remains untouched when gallery hardware changes. The physical deck overlay still follows Section 1, while the static event trace reflects the separately inspected code and may disagree with the displayed hardware; this is not a hardware-validating Python parser.
 
 ### Reference positions and safety
@@ -70,7 +64,7 @@ In the selected-block inspector, **Bottom + Z** specifies millimetres above the 
 
 The generated Python must still undergo official Opentrons App/API simulation for the intended robot/API version, followed by real-hardware checks and safe dry-run. The companion pinned Docker simulator was **not** end-to-end verified in this iteration.
 
-### Tests for this version
+### Validation and regression tests
 
 - `python tests/validate_site.py` — checks static links, catalogues, HTML IDs, assets and referenced scripts; does **not** execute the editor.
 - `python tests/test_visual_flow_v4.py` — Chromium/Playwright DOM interaction regression exercising section order, visible blocks, initial hardware-to-deck/code consistency, changing a source plate slot, adding a second transfer with fresh tip/well, editing volume, adding a module, and removing the mounted pipette to verify generation is blocked. Includes Python AST parsing and browser error capture.
@@ -111,19 +105,19 @@ Official resources:
 - [Official protocol simulation reference](https://docs.opentrons.com/python-api/reference/execute-simulate/)
 - [Opentrons repository](https://github.com/Opentrons/opentrons)
 
-The included `opentrons-edge_SELECTED.zip` was inspected as reference material. The `protocol-visualization` package in that archive describes itself as a scaffold; the standalone visualization UI is not implemented there, so this site is a separate, limited teaching prototype rather than an integration of that package.
+The Opentrons source archive was consulted as reference material. The `protocol-visualization` package in that archive describes itself as a scaffold; the standalone visualization UI is not implemented there, so this site is a separate, limited teaching prototype rather than an integration of that package.
 
 
 ## OT-2 deck illustration
 
-The homepage W02 illustration follows the slot arrangement printed in the supplied OT-2 Quick Start Guide, page 5: slots 10/11 at the back, rows 7–9, 4–6, and 1–3 toward the front, plus the front handle marker. It is a plan-view schematic, not a scale-mechanical drawing.
+The homepage W02 illustration follows the slot arrangement shown in the OT-2 Quick Start Guide, page 5: slots 10/11 at the back, rows 7–9, 4–6, and 1–3 toward the front, plus the front handle marker. It is a plan-view schematic, not a scale-mechanical drawing.
 
-## Previous composer implementations
+## Implementation history and compatibility
 
-The v2 guided-transfer and v3 expandable command-row implementations are retained only inside the hidden compatibility section and in historical backups. Neither is the active Build-mode composer in this package. The public v4 UI is `js/visual-composer-v4.js` plus `styles-visual-flow.css`.
+Earlier guided-transfer and command-row implementations are retained for compatibility but are not the active Build-mode interface. The visual composer is implemented in `js/visual-composer-v4.js` plus `styles-visual-flow.css`.
 
 
-## v5 — Broader labware and Python-to-visual mapping (2026-10-26)
+## Extended labware and Python-to-visual mapping
 
 - **Section 1 defines pipettes, tip racks, plates and non-tip labware**; all deck items assigned an official labware definition can be chosen as block liquid targets (tip racks remain pickup-only). Each placed item's identity and slot drive Python `load_labware()` and the live 2D deck map.
 - **Official JSON labware import:** The Hardware Configurator accepts a user-provided Opentrons standard labware-definition JSON with `parameters`, `wells`, `ordering`, and `dimensions`. The importer deliberately accepts only *regular rectangular well grids* and derives pitch, origin and well dimensions directly from that definition. Unsupported or nonuniform designs are rejected, not approximated. Imported definitions persist in browser local storage; copy the original JSON when transferring between browsers. They are not distributed as bundled official definitions, and exact physical accuracy still depends on calibration and compatibility.
@@ -136,7 +130,7 @@ The v2 guided-transfer and v3 expandable command-row implementations are retaine
 Regression checks: `python tests/test_visual_flow_v4.py`, `python tests/test_v5_expansion.py`, `python tests/validate_site.py`; JavaScript with `node --check`. Docker-based official simulation and real-robot validation remain untested.
 
 
-## v6 — Operational standard modules, custom deck devices, and food-dye simulation (2026-11-01)
+## Module operations, custom devices, and food-dye simulation
 
 ### Opentrons standard module blocks
 
@@ -166,7 +160,7 @@ Module methods are validated against the chosen module family and API level; inv
 
 ### Food-dye electrophoresis: model assumptions and provenance
 
-The old `food-dyes.html` placeholder has been replaced with a working local/static application (no external JS/CDN). The bundled `data/food-dyes.json` contains defined colorant sodium salts: **E102** tartrazine, **E110** sunset yellow FCF, **E122** carmoisine/azorubine, **E124** Ponceau 4R, **E129** Allura Red AC, **E133** Brilliant Blue FCF. Names, chemical formulas, molar masses, and source links are sourced to PubChem compound records and E-number specifications; they **do not describe brand-specific recipes**, and mixtures selected in the app are hypothetical combinations.
+The `food-dyes.html` page provides a self-contained interactive application (no external JS/CDN). The bundled `data/food-dyes.json` contains defined colorant sodium salts: **E102** tartrazine, **E110** sunset yellow FCF, **E122** carmoisine/azorubine, **E124** Ponceau 4R, **E129** Allura Red AC, **E133** Brilliant Blue FCF. Names, chemical formulas, molar masses, and source links are sourced to PubChem compound records and E-number specifications; they **do not describe brand-specific recipes**, and mixtures selected in the app are hypothetical combinations.
 
 - Experiment controls: applied voltage `V`, electrode gap `L`, gel usable distance (independent of electrode gap), agarose percentage, temperature, time, and a user-defined sieving factor multiplier.
 - Each lane can include zero, one, or many compound dyes. Choose pure dye lanes or the demonstration mixtures. Time slider, play/pause/restart, live quantitative peak-distance table, clipped-gel warning, and CSV export are included.
@@ -176,7 +170,7 @@ The old `food-dyes.html` placeholder has been replaced with a working local/stat
 
 Compound references: https://pubchem.ncbi.nlm.nih.gov/compound/Tartrazine , https://pubchem.ncbi.nlm.nih.gov/compound/17730 , https://pubchem.ncbi.nlm.nih.gov/compound/19118 , https://pubchem.ncbi.nlm.nih.gov/compound/17466 , https://pubchem.ncbi.nlm.nih.gov/compound/33258 , https://pubchem.ncbi.nlm.nih.gov/compound/19700 . EU additive specifications: https://eur-lex.europa.eu/eli/reg/2012/231/oj .
 
-### v6 tests and deployment caveats
+### Validation and deployment limitations
 
 - `python tests/validate_site.py`
 - `python tests/test_visual_flow_v4.py`
