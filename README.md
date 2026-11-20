@@ -1,6 +1,6 @@
-# LifeFabs Fieldnotes (Labflow) — Laboratory Automation and Simulation Tools
+# Lifefabs LabFlow: Laboratory Automation and Simulation Tools
 
-LifeFabs Fieldnotes, or Lifefabs Labflow, is an open, browser-based collection of educational tools for laboratory automation, protocol design, and experimental simulation. It includes a hardware-linked Opentrons OT-2 protocol workbench and an interactive food-dye electrophoresis model. The platform is designed for teaching, exploratory planning, and collaborative review; it is not a substitute for validated instrument-control software or experimental calibration.
+Lifefabs Labflow is an open, browser-based collection of educational tools for laboratory automation, protocol design, and experimental simulation. As of now, it includes a hardware-linked Opentrons OT-2 protocol workbench and an interactive food-dye electrophoresis model, with several other simulation interfaces planned for Lifefabs'. The platform is designed for teaching, exploratory planning, and collaborative review; it is not a substitute for validated instrument-control software or experimental calibration.
 
 ## Platform components
 
@@ -12,7 +12,7 @@ LifeFabs Fieldnotes, or Lifefabs Labflow, is an open, browser-based collection o
 - `js/instrument-gallery.js` + `styles-instrument-gallery.css` — mounted pipettes, deck modules, shared slot conflict handling, persistent hardware state and setup-code/JSON export including live labware placements.
 - `data/opentrons-instruments.json` — structured catalogue of OT-2 Python API pipettes and modules, load names, API minimum versions, mount/deck placement metadata, and official docs links.
 - `styles-composer.css` — legacy element styling and compact `(i)` help icons; new composer styles live in `styles-visual-flow.css`.
-- `js/theme.js` + `styles-theme.css` — dark-first LifeFabs palette, bright-theme switch, logo swap, Consolas headings and Bahnschrift-first body typography.
+- `js/theme.js` + `styles-theme.css` — dark-first Lifefabs palette, bright-theme switch, logo swap, Consolas headings and Bahnschrift-first body typography.
 - `js/official-sim-client.js` — optional client for the isolated Opentrons API simulation service.
 - `simulation-service/` — optional FastAPI service + container sandbox that calls the official `opentrons.simulate.simulate()` entry point.
 - `data/labware-presets.json` — compact geometry extracts from official Opentrons labware definition JSONs. Each entry links to its source definition.
@@ -21,7 +21,7 @@ LifeFabs Fieldnotes, or Lifefabs Labflow, is an open, browser-based collection o
 
 ## Theme and logos
 
-The site defaults to a black/navy/white dark theme. The header toggle switches to a bright theme and remembers the preference in local storage. Headings use Consolas where available; body copy uses Bahnschrift with Segoe UI and Arial fallbacks if Bahnschrift is unavailable. The LifeFabs light mark appears on dark backgrounds and the navy mark on bright backgrounds.
+The site defaults to a black/navy/white dark theme. The header toggle switches to a bright theme and remembers the preference in local storage. Headings use Consolas where available; body copy uses Bahnschrift with Segoe UI and Arial fallbacks if Bahnschrift is unavailable. The Lifefabs light mark appears on dark backgrounds and the navy mark on bright backgrounds.
 
 ## Optional Opentrons API simulation service
 
@@ -31,13 +31,14 @@ Start steps and security limitations are documented in [`simulation-service/READ
 
 ## Run locally
 
-The OT-2 page loads a JSON file and the CAD viewer imports Three.js, so use HTTP rather than opening `index.html` directly from the filesystem.
+After cloning the repository, it may be locally hosted using the following command:
 
 ```bash
 python -m http.server 8000
 ```
+The OT-2 page loads a JSON file and the CAD viewer imports Three.js, so use HTTP rather than opening `index.html` directly from the filesystem.
 
-Then open <http://localhost:8000/>.
+The hosted website can be accessed at <http://localhost:8000/>.
 
 ## Visual protocol composer and hardware synchronization
 
@@ -177,5 +178,3 @@ Compound references: https://pubchem.ncbi.nlm.nih.gov/compound/Tartrazine , http
 - `python tests/test_v5_expansion.py`
 - `python tests/test_v6_modules_dyes.py` — browser integration for standard and custom module blocks, module labware stacks, generator syntax, dye simulation and model input-response.
 - `node --check js/*.js` (execute per file)
-
-Browser tests use Chromium and injected source/JSON. These are **not equivalent** to an official Opentrons App/API analysis run, a Docker simulator trial, a peer-reviewed electrophoresis model calibration or a physical OT-2/hardware validation. Verify all physical device clearances, electrical interfaces, real labware geometry and actual reagent suitability before operating equipment.
