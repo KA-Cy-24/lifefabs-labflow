@@ -858,6 +858,7 @@ function getHardwareReviewForInspected(stats) {
 }
 
 function updateProtocolOverview() {
+  if (activeMode === 'inspect') return updateInspectionOverview()
   if (externalPlan && activeMode === 'build') {
     const plan = externalPlan
     $('activeProtocolName').textContent = plan.name
@@ -995,6 +996,7 @@ function syncHardwarePipetteToBuilder() {
 }
 
 function buildProtocol() {
+  if (activeMode !== 'build') return
   if (window.lifefabsV4Active && activeMode === 'build') return
   const config = getConfig()
   const errors = validateConfig(config)
@@ -1080,6 +1082,7 @@ function activeStep() {
 }
 
 function getPathPoints() {
+  if (activeMode === 'inspect') return []
   const path = []
   currentSteps.slice(0, activeStepIndex + 1).forEach(step => {
     const pos = relativePointForStep(step)
@@ -1198,7 +1201,7 @@ function renderDeck2D() {
   // Mounted pipettes do not occupy a deck slot; render both gantry mounts separately.
   pieces.push(`<text x="610" y="333" fill="${COLORS.ink}" font-size="10" font-weight="700" font-family="monospace">GANTRY MOUNTS</text>`)
   for (const [i, mount] of ['left','right'].entries()) {
-    const pip = (hardwareLayout.mounted_pipettes || []).find(x => x.mount === mount)
+    const pip = ((activeMode === 'inspect' ? importedLayout : hardwareLayout)?.mounted_pipettes || []).find(x => x.mount === mount)
     const title = pip ? (pip.api_load_name || pip.name).slice(0, 21) : 'empty'
     const y = 343 + i * 48
     pieces.push(`<rect x="606" y="${y}" width="143" height="39" rx="7" fill="${pip ? '#daefe8' : '#e7ecea'}" stroke="${pip ? '#278a7c' : '#bdc7c3'}"/>`)
@@ -1432,6 +1435,7 @@ function updateCoordinateDetails() {
 }
 
 function updateTimelineAndView() {
+  updateInspectionSelection()
   $('stepSlider').max = Math.max(currentSteps.length - 1, 0)
   $('stepSlider').value = Math.min(activeStepIndex, Math.max(currentSteps.length - 1, 0))
   const chipList = $('stepChips')
@@ -1662,35 +1666,126 @@ let importedLayout = null
 let importedDefinitions = new Map()
 let inspectionTicket = 0
 
+// Project the imported snapshot *inside* the existing hardware and composer DOM.
+// The Build nodes and their event listeners remain intact, and are never persisted from here.
+let inspectionModel = null
+function inspectionNode(host, className, position = 'beforeend') {
+  const node = document.createElement('div')
+  node.className = `lf-inspect-projection ${className}`
+  host.insertAdjacentElement(position, node)
+  return node
+}
 function renderInspection(model, steps) {
-  const hardware = $('lfImportedHardware')
-  const composer = $('lfImportedComposer')
-  const list = (rows, format, ordered = false) => {
-    const node = document.createElement(ordered ? 'ol' : 'ul')
-    rows.forEach((row, i) => {
-      const li = document.createElement('li')
-      if (ordered) {
-        const button = document.createElement('button')
-        button.type = 'button'
-        button.className = 'button button-outline button-small'
-        button.textContent = format(row)
-        button.addEventListener('click', () => {
-          if (previewStale || viewerSource !== 'inspect') return
-          activeStepIndex = i
-          updateTimelineAndView()
-        })
-        li.append(button)
-      } else li.textContent = format(row)
-      node.append(li)
-    })
-    return node
+  inspectionModel = model
+  document.querySelectorAll('.lf-inspect-projection').forEach(node => node.remove())
+  const byId = new Map(model.hardware.map(h => [h.id, h]))
+  const assigned = new Set()
+  const item = h => `${h.label || h.name} · ${h.kind} · L${h.line}`
+  function fill(host, rows, empty) {
+    const content = inspectionNode(host, 'lf-inspect-placement')
+    content.textContent = rows.length ? rows.map(item).join('\n') : empty
+    rows.forEach(h => assigned.add(h.id))
   }
-  const hwNote = document.createElement('p')
-  hwNote.textContent = model.hardware.length ? 'Detected loads. This setup is inferred from the script and does not change your Build workspace.' : 'No OT-2 setup was mapped for this source.'
-  hardware.replaceChildren(hwNote, list(model.hardware, h => `${h.kind} · ${h.label} · ${h.location ?? (h.parent ? 'on ' + (model.hardware.find(p => p.id === h.parent)?.label || h.parent) : 'placement unresolved')} · line ${h.line}`))
-  const note = document.createElement('p')
-  note.textContent = steps.length ? 'Read-only action sequence. Select an action to highlight its known target on the deck. Complex commands show requested targets, not internal robot motions.' : 'No mapped actions for this source. See the inspector diagnostics.'
-  composer.replaceChildren(note, list(steps, step => step.label, true))
+  for (const host of document.querySelectorAll('[data-drop-mount]')) {
+    fill(host, model.hardware.filter(h => h.kind === 'instrument' && h.location === host.dataset.dropMount), 'No mapped pipette')
+  }
+  let occupied = 0
+  for (const host of $('instrumentDeck').querySelectorAll('[data-drop-slot]')) {
+    const rows = model.hardware.filter(h => h.kind !== 'instrument' && inspectionSlot(h, byId) === Number(host.dataset.dropSlot))
+    if (rows.length) occupied++
+    // Slot hosts are buttons: use a span, not a nested interactive element.
+    const label = document.createElement('span')
+    label.className = 'lf-inspect-projection lf-inspect-placement'
+    label.textContent = rows.length ? rows.map(item).join('\n') : 'No mapped load'
+    host.append(label)
+    rows.forEach(h => assigned.add(h.id))
+  }
+  const unresolved = model.hardware.filter(h => !assigned.has(h.id))
+  const hardware = inspectionNode($('instrumentGalleryPanel').querySelector('.instrument-work-area'), 'lf-inspect-hardware-note', 'afterbegin')
+  hardware.textContent = `${occupied} mapped slot(s) · Inferred from Python, not robot state.${unresolved.length ? '\nUnresolved placement: ' + unresolved.map(item).join('; ') : ''}`
+  const canvas = inspectionNode($('flowBlocks'), 'flow-blocks', 'afterend')
+  const detail = inspectionNode($('flowInspector'), 'lf-inspect-detail', 'afterend')
+  detail.id = 'lfInspectionDetail'
+  steps.forEach((step, index) => {
+    const block = document.createElement('button')
+    block.type = 'button'
+    block.className = 'flow-block flow-liquid'
+    block.dataset.inspectStep = index
+    block.textContent = `${String(index + 1).padStart(2, '0')} · ${step.label}`
+    block.addEventListener('click', () => {
+      if (previewStale || viewerSource !== 'inspect') return
+      activeStepIndex = index
+      updateTimelineAndView()
+    })
+    canvas.append(block)
+  })
+  if (!steps.length) canvas.textContent = 'No mapped actions. Load or analyse a supported OT-2 script and review the diagnostics.'
+  updateInspectionSelection()
+}
+
+function inspectionSlot(h, byId) {
+  // Follow module / adapter parents without inventing offsets or accepting cycles.
+  const visited = new Set()
+  while (h?.parent) {
+    if (visited.has(h.id)) return null
+    visited.add(h.id)
+    h = byId.get(h.parent)
+  }
+  const slot = Number(h?.location)
+  return SLOT_MAP[slot] ? slot : null
+}
+
+function updateInspectionSelection() {
+  if (activeMode !== 'inspect') return
+  for (const button of document.querySelectorAll('[data-inspect-step]')) {
+    const selected = !previewStale && Number(button.dataset.inspectStep) === activeStepIndex
+    button.classList.toggle('selected', selected)
+    button.setAttribute('aria-pressed', String(selected))
+  }
+  const detail = $('lfInspectionDetail')
+  if (!detail) return
+  const step = !previewStale && currentSteps[activeStepIndex]
+  detail.textContent = step ? `${step.label}\n${step.note}` : 'Read-only source preview. No current mapped action.'
+}
+
+function setInspectionModeUI(mode) {
+  const inspecting = mode === 'inspect'
+  for (const id of ['instrumentGalleryPanel', 'visualFlowPanel']) {
+    const panel = $(id)
+    panel.hidden = !['build','inspect'].includes(mode)
+    panel.classList.toggle('lf-is-inspecting', inspecting)
+    const description = panel.querySelector('.panel-header p')
+    if (description) {
+      description.dataset.buildDescription ??= description.textContent
+      description.textContent = !inspecting ? description.dataset.buildDescription : id === 'instrumentGalleryPanel'
+        ? 'Mounts and slots detected in the selected Python source. Switch to Build to edit your draft.'
+        : 'Select a mapped action to show its details and deck targets. Imported actions are read-only.'
+    }
+
+    for (const target of panel.querySelectorAll('[data-drop-slot], [data-drop-mount]')) {
+      if (target.tagName === 'BUTTON') target.disabled = inspecting
+      else target.tabIndex = inspecting ? -1 : 0
+    }
+  }
+  if (!inspecting) document.querySelectorAll('.lf-inspect-projection').forEach(node => node.remove())
+}
+
+function updateInspectionOverview() {
+  const ready = viewerSource === 'inspect' && inspectedStats && !previewStale
+  const mapped = ready && inspectionModel?.hardware.length
+  $('protocolOverview').dataset.state = ready ? 'inspect' : 'stale'
+  $('protocolSyncBadge').textContent = `INSPECTION MODE · ${!ready ? 'ANALYSE TO SYNC' : mapped ? 'STATIC PREVIEW' : 'NO MAPPED SETUP'}`
+  $('activeProtocolName').textContent = ready ? inspectedStats.protocolName : 'Inspect Python'
+  $('activeProtocolDescription').textContent = ready ? 'The shared workbench shows the mapped subset of this script, not a validated run.' : 'Analyse the current Python to populate hardware, deck and blocks together.'
+  $('summaryRobot').textContent = ready ? `${inspectedStats.robotType} · API ${inspectedStats.apiLevel || 'unconfirmed'}` : '—'
+  $('summaryPipette').textContent = ready ? inspectedStats.pipetteSummary : '—'
+  $('summaryTransfers').textContent = ready ? `${inspectedStats.eventCount} mapped operations` : '—'
+  $('summaryLabware').textContent = ready ? inspectedStats.labwareSummary : '—'
+  $('summaryTarget').textContent = 'Known targets only'
+  $('hardwareLinkTitle').textContent = 'Source: analysed Python'
+  $('hardwareLinkDescription').textContent = 'Hardware and blocks are read-only here. Your Build draft is unchanged.'
+  $('hardwareConflictList').hidden = true
+  $('syncHardwareSettings').hidden = true
 }
 
 async function analyseCurrentCode() {
@@ -1715,10 +1810,12 @@ async function analyseCurrentCode() {
   }
   if (!current()) return
   const byId = new Map(model.hardware.map(h => [h.id,h]))
-  const slot = h => h?.parent ? slot(byId.get(h.parent)) : SLOT_MAP[Number(h?.location)] ? Number(h.location) : null
+  const slot = h => inspectionSlot(h, byId)
   const modules = model.hardware.filter(h => h.kind==='module' && slot(h)).map(h => ({uid:h.id,name:h.name,location:slot(h),reserved_slots:[slot(h)]}))
   importedDefinitions = definitions
-  importedLayout = {placed_modules:modules}
+  importedLayout = {placed_modules:modules, mounted_pipettes:model.hardware
+    .filter(h => h.kind === 'instrument' && ['left','right'].includes(h.location))
+    .map(h => ({mount:h.location, api_load_name:h.name}))}
   const warnings = model.warnings.map(w => ({level:'warn',text:`${w.line ? `Line ${w.line}: ` : ''}${w.message}`}))
   const labware = model.hardware.filter(h => h.kind==='labware' && slot(h))
   const duplicateSlots = new Set(labware.filter(h => labware.some(other => other!==h && slot(other)===slot(h))).map(slot))
@@ -1733,7 +1830,7 @@ async function analyseCurrentCode() {
     const t = targets.length===1 ? targets[0] : null
     const lab = byId.get(t?.lab), owner = byId.get(event.owner)
     const location = slot(lab)
-    const point = t && !t.offset && t.reference!=='default' && !lab?.parent && lab?.catalogue && !duplicateSlots.has(location)
+    const point = location && t && !t.offset && t.reference!=='default' && !lab?.parent && lab?.catalogue && !duplicateSlots.has(location)
       ? targetPosition(getDefinition(lab.name), location, t.well, t.reference, t.z) : null
     const kind = asKind[event.method] || event.method
     const label = `${event.method.replaceAll('_',' ')}${event.volume != null ? ` · ${event.volume} µL` : ''}${targets.length===1 ? ` · ${t.well}` : ''} · L${event.line}`
@@ -1769,8 +1866,7 @@ async function analyseCurrentCode() {
 function switchMode(mode) {
   activeMode = mode
   inspectionTicket++
-  for (const id of ['lfImportedHardwarePanel','lfImportedComposerPanel']) $(id).hidden = mode !== 'inspect'
-  for (const id of ['instrumentGalleryPanel','visualFlowPanel']) $(id).hidden = mode === 'inspect'
+  setInspectionModeUI(mode)
   if (mode === 'inspect') {
     currentSteps = []; activeStepIndex = 0; importedLayout = null; inspectedStats = null
     renderInspection({hardware:[]}, [])
@@ -1793,9 +1889,9 @@ function switchMode(mode) {
   $('codeState').textContent = mode === 'build' ? 'Generated template · editable' : 'Static inspection only'
   if (mode === 'inspect') {
     viewerSource = 'inspectPending'
-    updateTimelineAndView()
     inspectEditorStale = false
     previewStale = true
+    updateTimelineAndView()
     updateProtocolOverview()
   } else {
     if (mode === 'build') buildProtocol()
@@ -1868,7 +1964,16 @@ function attachEvents() {
   $('prevStep').addEventListener('click', () => { activeStepIndex = Math.max(0, activeStepIndex - 1); updateTimelineAndView() })
   $('nextStep').addEventListener('click', () => { activeStepIndex = Math.max(0, Math.min(currentSteps.length - 1, activeStepIndex + 1)); updateTimelineAndView() })
   $('codeEditor').addEventListener('input', () => {
-    if (activeMode === 'inspect') inspectionTicket++
+    if (activeMode === 'inspect') {
+      inspectionTicket++
+      currentSteps = []; activeStepIndex = 0; inspectedStats = null
+      importedLayout = null; importedDefinitions = new Map()
+      viewerSource = 'inspectPending'; previewStale = true
+      renderInspection({hardware: []}, [])
+      $('codeState').textContent = 'Source changed · analyse to sync'
+      updateTimelineAndView(); updateProtocolOverview(); updateCodeMeta()
+      return
+    }
     updateCodeMeta()
     const code = $('codeEditor').value
     if (viewerSource === 'inspect') {
@@ -1897,17 +2002,19 @@ function attachEvents() {
     const name = fileSafeName(generatedConfig?.protocolName || 'lifefabs-ot2-protocol')
     downloadFile(`${name}.py`, $('codeEditor').value, 'text/x-python;charset=utf-8')
   })
-  $('pythonFile').addEventListener('change', event => {
+  $('pythonFile').addEventListener('change', async event => {
     const file = event.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      $('codeEditor').value = String(reader.result || '')
-      $('codeState').textContent = `Loaded ${file.name} · analyse to inspect`
-      updateCodeMeta()
+    event.target.value = ''
+    const ticket = ++inspectionTicket
+    try {
+      const source = await file.text()
+      if (ticket !== inspectionTicket || activeMode !== 'inspect') return
+      $('codeEditor').value = source
       analyseCurrentCode()
+    } catch (error) {
+      if (ticket === inspectionTicket) $('codeState').textContent = `File read failed: ${error.message}`
     }
-    reader.readAsText(file)
   })
   $('loadExample').addEventListener('click', () => {
     switchMode('inspect')
@@ -1924,7 +2031,7 @@ function attachEvents() {
       const start = event.target.selectionStart
       const end = event.target.selectionEnd
       event.target.setRangeText('    ', start, end, 'end')
-      updateCodeMeta()
+      event.target.dispatchEvent(new Event('input', {bubbles:true}))
     }
   })
   window.addEventListener('resize', () => { if (activeView !== 'cad') updateVisualMode(); else cadViewer?.resize() })
@@ -1950,6 +2057,7 @@ async function init() {
     getDefinition, targetPosition, makeEvent, updateTimelineAndView, updateProtocolOverview, setDiagnostics,
     registerLabwareDefinition(d) { if (!d?.loadName || !d.wellGeometry) return; customDefs = customDefs.filter(x => x.loadName !== d.loadName); customDefs.push(d); },
     applyPlan(plan) {
+      if (activeMode !== 'build') return
       externalPlan = plan; generatedConfig = null; viewerSource = 'builder'
       previewStale = false; previewFailed = plan.errors.length > 0; builderEditorStale = false
       currentSteps = plan.steps; activeStepIndex = Math.max(0, Math.min(activeStepIndex, currentSteps.length - 1))
