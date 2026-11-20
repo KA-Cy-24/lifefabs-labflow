@@ -1,0 +1,5 @@
+#lfImportedHardwarePanel[hidden], #lfImportedComposerPanel[hidden],
+#instrumentGalleryPanel[hidden], #visualFlowPanel[hidden] {display:none !important}
+#lfImportedComposer ol {max-height:30rem;overflow:auto;padding-inline-start:2.5rem}
+#lfImportedComposer li {margin-block:.35rem}
+#lfImportedComposer button {text-align:start;white-space:normal}

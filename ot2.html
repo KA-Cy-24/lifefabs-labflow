@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="styles-composer.css">
   <link rel="stylesheet" href="styles-visual-flow.css">
   <link rel="stylesheet" href="labflow-phase1.css">
+  <link rel="stylesheet" href="styles-inspection.css">
   <script src="js/labflow-geometry.js" defer></script>
   <script src="js/labflow-phase1.js" defer></script>
   <script src="js/theme.js" defer></script>
@@ -82,6 +83,10 @@
 <aside class="lf-note"><strong>To test or adapt:</strong> Inspect Python gives a static preview for supported OT-2 code. Review warnings, edit a copy, then analyze it in the Opentrons App for the declared robot and API. Check the real deck before any run. Flex files are source-only in LabFlow.</aside>
 </div>
     </section>
+<section class="panel lf-panel" id="lfImportedHardwarePanel" hidden>
+  <header class="panel-header"><div><span class="panel-kicker">INSPECT PYTHON · READ ONLY</span><h2>01 · Imported hardware setup</h2></div></header>
+  <div class="lf-body" id="lfImportedHardware"><p>Load or analyse a Python protocol to see its detected hardware.</p></div>
+</section>
     <section class="panel instrument-gallery-panel" id="instrumentGalleryPanel" aria-labelledby="instrumentGalleryTitle">
       <div class="panel-header instrument-gallery-head">
         <div><span class="panel-kicker">01 · HARDWARE CONFIGURATOR</span><h2 id="instrumentGalleryTitle">Instrument &amp; module gallery</h2><p>Mount pipettes; place labware, tip racks, and compatible modules in deck slots. Move a placed item to reposition it, or drop it in the recycle bin to remove it from this layout.</p></div>
@@ -207,6 +212,10 @@
 
 
 
+<section class="panel lf-panel" id="lfImportedComposerPanel" hidden>
+  <header class="panel-header"><div><span class="panel-kicker">INSPECT PYTHON · READ ONLY</span><h2>03 · Imported protocol actions</h2></div></header>
+  <div class="lf-body" id="lfImportedComposer"><p>Mapped actions appear here after inspection.</p></div>
+</section>
     <section class="panel visual-flow-panel" id="visualFlowPanel" aria-labelledby="flowTitle">
       <div class="panel-header"><div><span class="panel-kicker">03 · PROTOCOL COMPOSER · VISUAL BLOCKS</span><h2 id="flowTitle">Snap together your robot's actions</h2><p>Choose a block from the palette. Every block reads the mounted pipettes and placed labware above. Click a block to edit; drag blocks to reorder.</p></div><span class="tag">LIVE PYTHON + DECK</span></div>
       <div class="flow-topbar"><label>Protocol name <input id="flowName" value="LifeFabs OT-2 visual workflow" maxlength="80"></label><label>API version <select id="flowApi"><option value="2.15">2.15</option><option value="2.20">2.20</option><option value="2.28">2.28</option></select></label><button type="button" id="flowExample" class="button button-outline button-small">Load transfer example</button><button type="button" id="flowClear" class="button button-outline button-small">Clear blocks</button><button type="button" id="flowSave" class="button button-outline button-small">Save workflow</button><label class="flow-import button button-outline button-small">Open JSON<input id="flowLoad" type="file" accept=".json,application/json" hidden></label></div>

@@ -1,3 +1,4 @@
+import {inspectPython} from './labflow-ast-client.js'
 const PRESET_DATA_URL = 'data/labware-presets.json'
 const SLOT_PITCH_X = 132.5
 const SLOT_PITCH_Y = 90.5
@@ -72,6 +73,7 @@ async function loadDefinitions() {
 }
 
 function getDefinition(loadName) {
+  if (activeMode === 'inspect' && importedDefinitions.has(loadName)) return importedDefinitions.get(loadName)
   return [...labwareDefs, ...customDefs].find(def => def.loadName === loadName) || null
 }
 
@@ -749,8 +751,8 @@ function setDiagnostics(items, status = 'ready', title = 'Protocol checks', subt
   $('analysisSubtitle').textContent = subtitle || (warns ? `${warns} issue(s) or limitations need attention.` : 'No issues detected within this checker’s scope.')
 }
 
-function hardwareModuleAtSlot(slot) {
-  return (hardwareLayout.placed_modules || []).find(module => {
+function hardwareModuleAtSlot(slot, layout = activeMode === 'inspect' ? importedLayout : hardwareLayout) {
+  return (layout?.placed_modules || []).find(module => {
     const reserved = Array.isArray(module.reserved_slots) && module.reserved_slots.length ? module.reserved_slots : [module.location]
     return reserved.map(Number).includes(Number(slot))
   }) || null
@@ -830,7 +832,7 @@ function getHardwareReviewForInspected(stats) {
     }
   }
   for (const labware of scriptLabwares) {
-    const module = hardwareModuleAtSlot(labware.slot)
+    const module = hardwareModuleAtSlot(labware.slot, hardwareLayout)
     if (module) issues.push(`Inspected script loads ${labware.loadName} in slot ${labware.slot}, which is reserved by gallery module ${module.name}.`)
   }
 
@@ -1037,7 +1039,8 @@ function buildProtocol() {
 }
 
 function makeSlotMap() {
-  if (externalPlan) {
+  if (activeMode === 'inspect' && viewerSource !== 'inspect') return {}
+  if (activeMode !== 'inspect' && externalPlan) {
     const mapping = {}
     externalPlan.labware.forEach(l => { mapping[Number(l.slot)] = { kind: l.role === 'tips' ? 'tips' : l.role === 'source' ? 'source' : l.role === 'destination' ? 'destination' : 'labware', name: l.label.toUpperCase().slice(0, 11), loadName: l.load_name, moduleUid:l.moduleUid||null } })
     return mapping
@@ -1050,10 +1053,10 @@ function makeSlotMap() {
       const def = getDefinition(labware.loadName)
       const isTipRack = Boolean(def?.tipRack) || /tiprack/i.test(labware.loadName || '')
       if (isTipRack) {
-        roleForSlot[Number(labware.slot)] = { kind: 'tips', name: 'TIPS', loadName: labware.loadName }
+        roleForSlot[Number(labware.slot)] = { kind: 'tips', name: 'TIPS', loadName: labware.loadName, moduleUid:labware.moduleUid }
       } else {
         labwareIndex += 1
-        roleForSlot[Number(labware.slot)] = { kind: 'labware', name: `LOAD ${labwareIndex}`, loadName: labware.loadName }
+        roleForSlot[Number(labware.slot)] = { kind: 'labware', name: labware.label || `LOAD ${labwareIndex}`, loadName: labware.loadName, moduleUid:labware.moduleUid }
       }
     }
     return roleForSlot
@@ -1157,6 +1160,12 @@ function renderDeck2D() {
   if (path.length > 1) {
     const points = path.map(point => `${sx(point.x)},${sy(point.y)}`).join(' ')
     pieces.push(`<polyline points="${points}" fill="none" stroke="${COLORS.active}" stroke-width="2.6" stroke-dasharray="6 5" opacity=".9"/>`)
+  }
+  // A ring identifies a named well even when tip coordinates are unknown.
+  if (viewerSource === 'inspect' && !previewStale && !active?.point) {
+    for (const target of active?.previewTargets || []) {
+      pieces.push(`<circle cx="${sx(target.x)}" cy="${sy(target.y)}" r="6" fill="none" stroke="${COLORS.active}" stroke-width="2"><title>Requested well; not a tip coordinate</title></circle>`)
+    }
   }
   const activeMapPoint = active?.point?.relative || active?.visualPoint?.relative || null
   if (activeMapPoint) {
@@ -1648,43 +1657,124 @@ function analyseScript(code) {
   return { diagnostics, steps, labwares, pipettes }
 }
 
-function analyseCurrentCode() {
-  const code = $('codeEditor').value
-  const flex = /["']robotType["']\s*:\s*["']Flex["']/.test(code)
-  const result = flex ? {steps:[],labwares:new Map(),pipettes:new Map(),diagnostics:[{level:'error',text:'Flex protocol: source inspection only. The OT-2 deck, simulation and recovery are not available for this file.'}]} : analyseScript(code)
-  currentSteps = result.steps
-  activeStepIndex = 0
-  viewerSource = 'inspect'
-  previewStale = false
-  previewFailed = false
-  builderEditorStale = false
-  inspectEditorStale = false
-  lastInspectedCode = code
-  const robotMatch = code.match(/["']robotType["']\s*:\s*["'](OT-2|Flex)["']/)
-  const apiMatch = code.match(/["']apiLevel["']\s*:\s*["']([0-9.]+)["']/)
-  const pipes = Array.from(result.pipettes.values())
-  const labs = Array.from(result.labwares.values())
-  inspectedStats = {
-    protocolName: (code.match(/["']protocolName["']\s*:\s*["']([^"']+)["']/) || [])[1] || 'Uploaded / edited Python protocol',
-    robotType: robotMatch?.[1] || 'Robot unconfirmed', apiLevel: apiMatch?.[1] || null,
-    eventCount: result.steps.length, labwareCount: labs.length, pipetteCount: pipes.length,
-    pipetteSummary: pipes.length ? pipes.map(p => `${p.model} · ${p.mount}`).join('; ') : 'Not detected',
-    labwareSummary: labs.length ? labs.slice(0, 2).map(l => `S${l.slot} ${l.loadName}`).join(' → ') : 'Not mapped',
-    rawPipettes: pipes.map(p => ({ model: p.model, mount: p.mount, channels: p.channels })),
-    rawLabwares: labs.map(l => ({ loadName: l.loadName, slot: Number(l.slot) })),
+// Inspect owns a transient projection; never mutate gallery, saved blocks, or input Python.
+let importedLayout = null
+let importedDefinitions = new Map()
+let inspectionTicket = 0
+
+function renderInspection(model, steps) {
+  const hardware = $('lfImportedHardware')
+  const composer = $('lfImportedComposer')
+  const list = (rows, format, ordered = false) => {
+    const node = document.createElement(ordered ? 'ol' : 'ul')
+    rows.forEach((row, i) => {
+      const li = document.createElement('li')
+      if (ordered) {
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'button button-outline button-small'
+        button.textContent = format(row)
+        button.addEventListener('click', () => {
+          if (previewStale || viewerSource !== 'inspect') return
+          activeStepIndex = i
+          updateTimelineAndView()
+        })
+        li.append(button)
+      } else li.textContent = format(row)
+      node.append(li)
+    })
+    return node
   }
-  updateTimelineAndView()
-  const hasErrors = result.diagnostics.some(item => item.level === 'error')
-  const hasWarnings = result.diagnostics.some(item => item.level === 'warn')
-  setDiagnostics(result.diagnostics, hasErrors || hasWarnings ? 'warn' : 'ready', hasErrors ? 'Static inspection found blocking concerns' : hasWarnings ? 'Partial analysis — review warnings' : 'Supported subset inspected', `${result.steps.length} visual event(s) mapped. This remains a static browser inspection, not official protocol execution.`)
-  $('codeTitle').textContent = activeMode === 'inspect' ? 'Uploaded / edited Python protocol' : 'Inspected Python protocol'
-  $('codeState').textContent = 'Static inspection only'
-  updateCodeMeta()
-  updateProtocolOverview()
+  const hwNote = document.createElement('p')
+  hwNote.textContent = model.hardware.length ? 'Detected loads. This setup is inferred from the script and does not change your Build workspace.' : 'No OT-2 setup was mapped for this source.'
+  hardware.replaceChildren(hwNote, list(model.hardware, h => `${h.kind} · ${h.label} · ${h.location ?? (h.parent ? 'on ' + (model.hardware.find(p => p.id === h.parent)?.label || h.parent) : 'placement unresolved')} · line ${h.line}`))
+  const note = document.createElement('p')
+  note.textContent = steps.length ? 'Read-only action sequence. Select an action to highlight its known target on the deck. Complex commands show requested targets, not internal robot motions.' : 'No mapped actions for this source. See the inspector diagnostics.'
+  composer.replaceChildren(note, list(steps, step => step.label, true))
+}
+
+async function analyseCurrentCode() {
+  if (activeMode !== 'inspect') switchMode('inspect')
+  const code = $('codeEditor').value
+  const ticket = ++inspectionTicket
+  const current = () => ticket === inspectionTicket && activeMode === 'inspect' && $('codeEditor').value === code
+  const report = text => { if (current()) $('codeState').textContent = text }
+  currentSteps = []; activeStepIndex = 0; inspectedStats = null
+  importedLayout = null; importedDefinitions = new Map()
+  viewerSource = 'inspectPending'; previewStale = true
+  renderInspection({hardware:[]}, [])
+  updateTimelineAndView(); updateProtocolOverview()
+  report('Loading Python AST reader…')
+  let model, definitions
+  try {
+    ({model,definitions} = await inspectPython(code, [...labwareDefs, ...customDefs], report))
+  } catch (error) {
+    if (!current()) return
+    model = {status:'unavailable',hardware:[],events:[],warnings:[{message:error.message}]}
+    definitions = new Map()
+  }
+  if (!current()) return
+  const byId = new Map(model.hardware.map(h => [h.id,h]))
+  const slot = h => h?.parent ? slot(byId.get(h.parent)) : SLOT_MAP[Number(h?.location)] ? Number(h.location) : null
+  const modules = model.hardware.filter(h => h.kind==='module' && slot(h)).map(h => ({uid:h.id,name:h.name,location:slot(h),reserved_slots:[slot(h)]}))
+  importedDefinitions = definitions
+  importedLayout = {placed_modules:modules}
+  const warnings = model.warnings.map(w => ({level:'warn',text:`${w.line ? `Line ${w.line}: ` : ''}${w.message}`}))
+  const labware = model.hardware.filter(h => h.kind==='labware' && slot(h))
+  const duplicateSlots = new Set(labware.filter(h => labware.some(other => other!==h && slot(other)===slot(h))).map(slot))
+  if (duplicateSlots.size) warnings.push({level:'warn',text:'Ambiguous loads in slot(s) '+[...duplicateSlots].join(', ')+'. These positions are not rendered.'})
+  const mountRows = model.hardware.filter(h => h.kind==='instrument')
+  const asKind = {pick_up_tip:'pickup',drop_tip:'drop',move_to:'move',touch_tip:'touch',air_gap:'airgap',blow_out:'blowout'}
+  const describe = t => Array.isArray(t) ? t.map(describe).join(', ') : t ? `${byId.get(t.lab)?.label || t.lab} ${t.well}` : 'unresolved'
+  const leaves = t => Array.isArray(t) ? t.flatMap(leaves) : t ? [t] : []
+  const steps = model.events.map(event => {
+    const targets = event.targets.flatMap(leaves)
+    // Use a point only for a single exact, bare-deck target; never infer a path between groups.
+    const t = targets.length===1 ? targets[0] : null
+    const lab = byId.get(t?.lab), owner = byId.get(event.owner)
+    const location = slot(lab)
+    const point = t && !t.offset && t.reference!=='default' && !lab?.parent && lab?.catalogue && !duplicateSlots.has(location)
+      ? targetPosition(getDefinition(lab.name), location, t.well, t.reference, t.z) : null
+    const kind = asKind[event.method] || event.method
+    const label = `${event.method.replaceAll('_',' ')}${event.volume != null ? ` · ${event.volume} µL` : ''}${targets.length===1 ? ` · ${t.well}` : ''} · L${event.line}`
+    const groups = event.targets.map(describe).join(['transfer','distribute','consolidate'].includes(event.method) ? ' → ' : ' · ')
+    const previewTargets = targets.flatMap(target => {
+      const item = byId.get(target.lab), at = slot(item)
+      if (!at || !item?.catalogue || item.parent || duplicateSlots.has(at)) return []
+      // Highlight the named well, not the tip position or travel path.
+      const center = targetPosition(definitions.get(item.name), at, target.well, 'center', 0)
+      return center ? [center.relative] : []
+    })
+    return {...makeEvent({kind,label,note:`Static source line ${event.line}. ${groups || 'No explicit target.'}${point ? ' Nominal position only.' : ' Exact coordinates not rendered.'}`,
+      slot:duplicateSlots.has(location) ? null : location, well:t?.well, labwareName:lab?.name, pipetteModel:owner?.kind==='instrument' ? owner.name : null,
+      channels:PIPETTES[owner?.name]?.channels, volume:event.volume,point}), previewTargets}
+  })
+  currentSteps = steps
+  inspectedStats = {protocolName:model.name || 'Imported Python protocol',robotType:model.robot || 'Robot unconfirmed',apiLevel:model.api,
+    eventCount:steps.length, labwareCount:labware.length, pipetteCount:mountRows.length,
+    pipetteSummary:mountRows.map(h=>`${h.name} · ${h.location || 'mount unresolved'}`).join('; ') || 'Not detected',
+    labwareSummary:labware.map(h=>`S${slot(h)} ${h.label}`).join('; ') || 'Not mapped',
+    rawPipettes:mountRows.map(h=>({model:h.name,mount:h.location})),
+    rawLabwares:labware.filter(h=>!duplicateSlots.has(slot(h))).map(h=>({loadName:h.catalogue ? h.name : null,label:h.label,slot:slot(h),moduleUid:byId.get(byId.get(h.parent)?.parent)?.id || h.parent}))}
+  viewerSource = 'inspect'; previewStale = false; previewFailed = model.status==='unavailable'; inspectEditorStale = false
+  lastInspectedCode = code
+  $('codeTitle').textContent = 'Imported Python protocol'
+  report(`Python AST · ${model.status.replaceAll('-',' ')}`)
+  setDiagnostics(warnings.length ? warnings : [{level:'info',text:'No unsupported constructs encountered in the mapped subset. This is not official API analysis.'}], warnings.length ? 'warn':'ready',
+    'Static Python inspection', `${steps.length} mapped operations. This is not a validated run or a recovery protocol.`)
+  renderInspection(model, steps)
+  updateTimelineAndView(); updateProtocolOverview(); updateCodeMeta()
 }
 
 function switchMode(mode) {
   activeMode = mode
+  inspectionTicket++
+  for (const id of ['lfImportedHardwarePanel','lfImportedComposerPanel']) $(id).hidden = mode !== 'inspect'
+  for (const id of ['instrumentGalleryPanel','visualFlowPanel']) $(id).hidden = mode === 'inspect'
+  if (mode === 'inspect') {
+    currentSteps = []; activeStepIndex = 0; importedLayout = null; inspectedStats = null
+    renderInspection({hardware:[]}, [])
+  }
   if ($('downloadCode')) $('downloadCode').disabled = mode === 'build' && !!externalPlan?.errors?.length
   $('modeBuild').classList.toggle('active', mode === 'build')
   $('modeInspect').classList.toggle('active', mode === 'inspect')
@@ -1703,6 +1793,7 @@ function switchMode(mode) {
   $('codeState').textContent = mode === 'build' ? 'Generated template · editable' : 'Static inspection only'
   if (mode === 'inspect') {
     viewerSource = 'inspectPending'
+    updateTimelineAndView()
     inspectEditorStale = false
     previewStale = true
     updateProtocolOverview()
@@ -1777,6 +1868,7 @@ function attachEvents() {
   $('prevStep').addEventListener('click', () => { activeStepIndex = Math.max(0, activeStepIndex - 1); updateTimelineAndView() })
   $('nextStep').addEventListener('click', () => { activeStepIndex = Math.max(0, Math.min(currentSteps.length - 1, activeStepIndex + 1)); updateTimelineAndView() })
   $('codeEditor').addEventListener('input', () => {
+    if (activeMode === 'inspect') inspectionTicket++
     updateCodeMeta()
     const code = $('codeEditor').value
     if (viewerSource === 'inspect') {
