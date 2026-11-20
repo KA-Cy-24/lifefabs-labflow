@@ -473,7 +473,35 @@
     $('#instrumentSetupCode').value = generateSetupCode();
   }
 
+  // Use the ordinary deck/mount renderers with the imported placements.
+  // The temporary bindings are restored even if rendering fails.
   function renderAll() {
+    const view = window.lifefabsNativeInspection;
+    if (!view) return renderGallery();
+    const saved = {...state};
+    const oldLabware = window.lifefabsDeckLabware;
+    const oldSlots = window.lifefabsOccupiedLabwareSlots;
+    const catalogId = row => state.catalogue.find(item =>
+      item.api_load_name?.toLowerCase() === row.api_load_name.toLowerCase())?.id;
+    try {
+      state.deck = view.placed_modules.map(row => ({uid:row.uid,slot:row.location,catalogId:catalogId(row)})).filter(row=>row.catalogId);
+      state.mounts = {left:null,right:null};
+      for (const row of view.mounted_pipettes) {
+        const id = catalogId(row);
+        if (id) state.mounts[row.mount] = {uid:row.uid,mount:row.mount,catalogId:id};
+      }
+      state.selectedPlacedId = null;
+      window.lifefabsDeckLabware = view.labware;
+      window.lifefabsOccupiedLabwareSlots = view.labware.map(row=>row.slot);
+      renderGallery();
+    } finally {
+      Object.assign(state,saved);
+      window.lifefabsDeckLabware = oldLabware;
+      window.lifefabsOccupiedLabwareSlots = oldSlots;
+    }
+  }
+
+  function renderGallery() {
     renderCatalogue();
     renderDeck();
     renderMount('left');

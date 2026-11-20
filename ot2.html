@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="styles-composer.css">
   <link rel="stylesheet" href="styles-visual-flow.css">
   <link rel="stylesheet" href="labflow-phase1.css">
-  <link rel="stylesheet" href="styles-inspection.css">
+  
   <script src="js/labflow-geometry.js" defer></script>
   <script src="js/labflow-phase1.js" defer></script>
   <script src="js/theme.js" defer></script>
@@ -297,7 +297,7 @@
 </div>    <div class="lower-grid">
       <section class="panel code-panel">
         <div class="panel-header"><div><span class="panel-kicker">SOURCE CODE</span><h2 id="codeTitle">Generated OT-2 Python protocol</h2><p>Edit the example or download the generated file.</p></div><div class="code-toolbar"><button id="copyCode" class="button button-outline" type="button">Copy</button><button id="downloadCode" class="button button-primary" type="button">Download .py</button></div></div>
-        <div id="inspectIntake" class="source-intake hidden"><div class="source-intake-row"><label for="pythonFile"><strong>Upload Python</strong></label><input id="pythonFile" type="file" accept=".py,.txt,text/plain"><button id="loadExample" class="button button-outline button-small" type="button">Load sample</button></div><p>Python → visual viewer: click Analyse code after uploading or pasting a script. The static checker recognises common explicit OT-2 load, pick-up, aspirate, dispense, drop-tip and simple transfer statements. It does not execute Python or the Opentrons API.</p></div>
+        <div id="inspectIntake" class="source-intake"><div class="source-intake-row"><label for="pythonFile"><strong>Upload Python</strong></label><input id="pythonFile" type="file" accept=".py,.txt,text/plain"><button id="loadExample" class="button button-outline button-small" type="button">Load sample</button></div><p>Python → visual viewer: click Analyse code after uploading or pasting a script. The static checker recognises common explicit OT-2 load, pick-up, aspirate, dispense, drop-tip and simple transfer statements. It does not execute Python or the Opentrons API.</p></div>
         <textarea id="codeEditor" class="code-area" spellcheck="false" aria-label="Opentrons Python protocol editor" autocapitalize="off" autocomplete="off"></textarea>
         <div class="code-footer"><span><strong id="codeLineCount">0 lines</strong> · <span id="codeApiLabel">API v2.15</span></span><span id="codeState">Generated template · editable</span><span class="kbd">Ctrl/⌘ + Enter</span> analyse</div>
       </section>

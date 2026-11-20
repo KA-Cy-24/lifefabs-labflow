@@ -751,7 +751,7 @@ function setDiagnostics(items, status = 'ready', title = 'Protocol checks', subt
   $('analysisSubtitle').textContent = subtitle || (warns ? `${warns} issue(s) or limitations need attention.` : 'No issues detected within this checker’s scope.')
 }
 
-function hardwareModuleAtSlot(slot, layout = activeMode === 'inspect' ? importedLayout : hardwareLayout) {
+function hardwareModuleAtSlot(slot, layout = activeMode === 'inspect' ? (importedLayout || hardwareLayout) : hardwareLayout) {
   return (layout?.placed_modules || []).find(module => {
     const reserved = Array.isArray(module.reserved_slots) && module.reserved_slots.length ? module.reserved_slots : [module.location]
     return reserved.map(Number).includes(Number(slot))
@@ -1041,10 +1041,11 @@ function buildProtocol() {
 }
 
 function makeSlotMap() {
-  if (activeMode === 'inspect' && viewerSource !== 'inspect') return {}
-  if (activeMode !== 'inspect' && externalPlan) {
+  if (activeMode === 'inspect' && viewerSource !== 'inspect' && nativeInspection) return {}
+  const displayPlan = activeMode === 'inspect' ? nativeInspection || externalPlan : externalPlan
+  if (displayPlan) {
     const mapping = {}
-    externalPlan.labware.forEach(l => { mapping[Number(l.slot)] = { kind: l.role === 'tips' ? 'tips' : l.role === 'source' ? 'source' : l.role === 'destination' ? 'destination' : 'labware', name: l.label.toUpperCase().slice(0, 11), loadName: l.load_name, moduleUid:l.moduleUid||null } })
+    displayPlan.labware.forEach(l => { mapping[Number(l.slot)] = { kind: l.role === 'tips' ? 'tips' : l.role === 'source' ? 'source' : l.role === 'destination' ? 'destination' : 'labware', name: l.label.toUpperCase().slice(0, 11), loadName: l.geometryKnown === false ? null : l.load_name, moduleUid:l.moduleUid||null } })
     return mapping
   }
   const roleForSlot = {}
@@ -1201,7 +1202,7 @@ function renderDeck2D() {
   // Mounted pipettes do not occupy a deck slot; render both gantry mounts separately.
   pieces.push(`<text x="610" y="333" fill="${COLORS.ink}" font-size="10" font-weight="700" font-family="monospace">GANTRY MOUNTS</text>`)
   for (const [i, mount] of ['left','right'].entries()) {
-    const pip = ((activeMode === 'inspect' ? importedLayout : hardwareLayout)?.mounted_pipettes || []).find(x => x.mount === mount)
+    const pip = ((activeMode === 'inspect' ? (importedLayout || hardwareLayout) : hardwareLayout)?.mounted_pipettes || []).find(x => x.mount === mount)
     const title = pip ? (pip.api_load_name || pip.name).slice(0, 21) : 'empty'
     const y = 343 + i * 48
     pieces.push(`<rect x="606" y="${y}" width="143" height="39" rx="7" fill="${pip ? '#daefe8' : '#e7ecea'}" stroke="${pip ? '#278a7c' : '#bdc7c3'}"/>`)
@@ -1668,125 +1669,88 @@ let inspectionTicket = 0
 
 // Project the imported snapshot *inside* the existing hardware and composer DOM.
 // The Build nodes and their event listeners remain intact, and are never persisted from here.
-let inspectionModel = null
-function inspectionNode(host, className, position = 'beforeend') {
-  const node = document.createElement('div')
-  node.className = `lf-inspect-projection ${className}`
-  host.insertAdjacentElement(position, node)
-  return node
-}
-function renderInspection(model, steps) {
-  inspectionModel = model
-  document.querySelectorAll('.lf-inspect-projection').forEach(node => node.remove())
-  const byId = new Map(model.hardware.map(h => [h.id, h]))
-  const assigned = new Set()
-  const item = h => `${h.label || h.name} · ${h.kind} · L${h.line}`
-  function fill(host, rows, empty) {
-    const content = inspectionNode(host, 'lf-inspect-placement')
-    content.textContent = rows.length ? rows.map(item).join('\n') : empty
-    rows.forEach(h => assigned.add(h.id))
-  }
-  for (const host of document.querySelectorAll('[data-drop-mount]')) {
-    fill(host, model.hardware.filter(h => h.kind === 'instrument' && h.location === host.dataset.dropMount), 'No mapped pipette')
-  }
-  let occupied = 0
-  for (const host of $('instrumentDeck').querySelectorAll('[data-drop-slot]')) {
-    const rows = model.hardware.filter(h => h.kind !== 'instrument' && inspectionSlot(h, byId) === Number(host.dataset.dropSlot))
-    if (rows.length) occupied++
-    // Slot hosts are buttons: use a span, not a nested interactive element.
-    const label = document.createElement('span')
-    label.className = 'lf-inspect-projection lf-inspect-placement'
-    label.textContent = rows.length ? rows.map(item).join('\n') : 'No mapped load'
-    host.append(label)
-    rows.forEach(h => assigned.add(h.id))
-  }
-  const unresolved = model.hardware.filter(h => !assigned.has(h.id))
-  const hardware = inspectionNode($('instrumentGalleryPanel').querySelector('.instrument-work-area'), 'lf-inspect-hardware-note', 'afterbegin')
-  hardware.textContent = `${occupied} mapped slot(s) · Inferred from Python, not robot state.${unresolved.length ? '\nUnresolved placement: ' + unresolved.map(item).join('; ') : ''}`
-  const canvas = inspectionNode($('flowBlocks'), 'flow-blocks', 'afterend')
-  const detail = inspectionNode($('flowInspector'), 'lf-inspect-detail', 'afterend')
-  detail.id = 'lfInspectionDetail'
-  steps.forEach((step, index) => {
-    const block = document.createElement('button')
-    block.type = 'button'
-    block.className = 'flow-block flow-liquid'
-    block.dataset.inspectStep = index
-    block.textContent = `${String(index + 1).padStart(2, '0')} · ${step.label}`
-    block.addEventListener('click', () => {
-      if (previewStale || viewerSource !== 'inspect') return
-      activeStepIndex = index
-      updateTimelineAndView()
-    })
-    canvas.append(block)
-  })
-  if (!steps.length) canvas.textContent = 'No mapped actions. Load or analyse a supported OT-2 script and review the diagnostics.'
-  updateInspectionSelection()
-}
-
+// Adapt AST data to the existing workbench model. This is a transient view,
+// never a compiler input or a replacement for the saved Build draft.
+let nativeInspection = null
 function inspectionSlot(h, byId) {
-  // Follow module / adapter parents without inventing offsets or accepting cycles.
-  const visited = new Set()
+  const seen = new Set()
   while (h?.parent) {
-    if (visited.has(h.id)) return null
-    visited.add(h.id)
+    if (seen.has(h.id)) return null
+    seen.add(h.id)
     h = byId.get(h.parent)
   }
   const slot = Number(h?.location)
   return SLOT_MAP[slot] ? slot : null
 }
-
+function renderInspection(model, steps) {
+  const byId = new Map(model.hardware.map(h => [h.id, h]))
+  const placement = h => inspectionSlot(h, byId)
+  const unique = (items, key) => items.filter(x => items.filter(y => key(x) === key(y)).length === 1)
+  const modules = unique(model.hardware.filter(h => h.kind === 'module' && placement(h)), placement)
+  const catalogue = window.lifefabsGallery?.getCatalogue() || []
+  const match = h => catalogue.find(d => d.api_load_name.toLowerCase() === h.name.toLowerCase())
+  const placed_modules = modules.map(h => ({uid:h.id,api_load_name:h.name,name:h.label,location:placement(h),
+    reserved_slots:match(h)?.occupied_slots || [placement(h)],family:match(h)?.family}))
+  const mounted_pipettes = unique(model.hardware.filter(h => h.kind === 'instrument' && ['left','right'].includes(h.location)), h => h.location)
+    .map(h => ({uid:h.id,api_load_name:h.name,name:h.label,mount:h.location}))
+  const parentModuleId = h => modules.find(m => m.id === h.parent || m.id === byId.get(h.parent)?.parent)?.id || ''
+  const targets = t => Array.isArray(t) ? t.flatMap(targets) : t ? [t] : []
+  const sourceIds = new Set(), destinationIds = new Set()
+  for (const event of model.events || []) {
+    if (['aspirate','transfer','distribute','consolidate'].includes(event.method)) targets(event.targets[0]).forEach(t=>sourceIds.add(t.lab))
+    if (['dispense','transfer','distribute','consolidate'].includes(event.method)) targets(event.targets.at(-1)).forEach(t=>destinationIds.add(t.lab))
+  }
+  const definitions = [...importedDefinitions.values()].map(d=>({...d,wellNames:d.wellNames || d.ordering?.flat()}))
+  const labware = unique(model.hardware.filter(h => h.kind === 'labware' && placement(h)), placement).map(h=>({
+    id:h.id,label:h.label,load_name:h.name,slot:placement(h),moduleUid:parentModuleId(h),
+    role:importedDefinitions.get(h.name)?.tipRack || /tiprack/i.test(h.name) ? 'tips' :
+      sourceIds.has(h.id) && !destinationIds.has(h.id) ? 'source' : destinationIds.has(h.id) && !sourceIds.has(h.id) ? 'destination' : 'labware',
+    geometryKnown:!!h.catalogue
+  }))
+  const aliases = {pick_up_tip:'pickup',drop_tip:'drop',move_to:'move',touch_tip:'touch',air_gap:'airgap',blow_out:'blowout'}
+  const blocks = steps.map((step, index) => {
+    const event = model.events[index], owner = byId.get(event.owner)
+    const first = targets(event.targets[0]), last = targets(event.targets.at(-1)), t = first[0]
+    return {id:`inspected-${index}`, type:owner?.kind==='module' ? 'module' : aliases[event.method] || event.method,
+      imported:true, caption:step.label, note:step.note, eventIndex:index, pipette:owner?.location,
+      target:t?.lab, well:t?.well, rack:event.method==='pick_up_tip' ? t?.lab : undefined,tipWell:event.method==='pick_up_tip' ? t?.well : undefined,
+      volume:event.volume, reference:t?.offset ? undefined : t?.reference, z:t?.offset || !['bottom','top'].includes(t?.reference) ? undefined : t.z,
+      source:t?.lab, sourceWell:t?.well, destination:last[0]?.lab,destWell:last[0]?.well,
+      wellList:(event.method==='distribute' ? last : first).map(x=>x.well).join(', '),
+      moduleUid:owner?.id,moduleAction:event.method}
+  })
+  nativeInspection = {mounted_pipettes,placed_modules,labware,blocks,definitions}
+  importedLayout = nativeInspection
+  window.lifefabsNativeInspection = nativeInspection
+  updateInspectionSelection()
+}
 function updateInspectionSelection() {
-  if (activeMode !== 'inspect') return
-  for (const button of document.querySelectorAll('[data-inspect-step]')) {
-    const selected = !previewStale && Number(button.dataset.inspectStep) === activeStepIndex
-    button.classList.toggle('selected', selected)
-    button.setAttribute('aria-pressed', String(selected))
-  }
-  const detail = $('lfInspectionDetail')
-  if (!detail) return
-  const step = !previewStale && currentSteps[activeStepIndex]
-  detail.textContent = step ? `${step.label}\n${step.note}` : 'Read-only source preview. No current mapped action.'
+  if (activeMode !== 'inspect' || !nativeInspection) return
+  window.lifefabsVisualInspection?.render(nativeInspection, activeStepIndex)
 }
-
 function setInspectionModeUI(mode) {
-  const inspecting = mode === 'inspect'
-  for (const id of ['instrumentGalleryPanel', 'visualFlowPanel']) {
-    const panel = $(id)
-    panel.hidden = !['build','inspect'].includes(mode)
-    panel.classList.toggle('lf-is-inspecting', inspecting)
-    const description = panel.querySelector('.panel-header p')
-    if (description) {
-      description.dataset.buildDescription ??= description.textContent
-      description.textContent = !inspecting ? description.dataset.buildDescription : id === 'instrumentGalleryPanel'
-        ? 'Mounts and slots detected in the selected Python source. Switch to Build to edit your draft.'
-        : 'Select a mapped action to show its details and deck targets. Imported actions are read-only.'
-    }
-
-    for (const target of panel.querySelectorAll('[data-drop-slot], [data-drop-mount]')) {
-      if (target.tagName === 'BUTTON') target.disabled = inspecting
-      else target.tabIndex = inspecting ? -1 : 0
-    }
+  for (const id of ['instrumentGalleryPanel','visualFlowPanel']) $(id).hidden = !['build','inspect'].includes(mode)
+  if (mode !== 'inspect') {
+    nativeInspection = null
+    window.lifefabsNativeInspection = null
+    window.lifefabsVisualInspection?.restore()
   }
-  if (!inspecting) document.querySelectorAll('.lf-inspect-projection').forEach(node => node.remove())
 }
-
 function updateInspectionOverview() {
-  const ready = viewerSource === 'inspect' && inspectedStats && !previewStale
-  const mapped = ready && inspectionModel?.hardware.length
-  $('protocolOverview').dataset.state = ready ? 'inspect' : 'stale'
-  $('protocolSyncBadge').textContent = `INSPECTION MODE · ${!ready ? 'ANALYSE TO SYNC' : mapped ? 'STATIC PREVIEW' : 'NO MAPPED SETUP'}`
-  $('activeProtocolName').textContent = ready ? inspectedStats.protocolName : 'Inspect Python'
-  $('activeProtocolDescription').textContent = ready ? 'The shared workbench shows the mapped subset of this script, not a validated run.' : 'Analyse the current Python to populate hardware, deck and blocks together.'
-  $('summaryRobot').textContent = ready ? `${inspectedStats.robotType} · API ${inspectedStats.apiLevel || 'unconfirmed'}` : '—'
-  $('summaryPipette').textContent = ready ? inspectedStats.pipetteSummary : '—'
-  $('summaryTransfers').textContent = ready ? `${inspectedStats.eventCount} mapped operations` : '—'
-  $('summaryLabware').textContent = ready ? inspectedStats.labwareSummary : '—'
+  $('protocolSyncBadge').textContent = 'INSPECTION MODE'
+  if (viewerSource !== 'inspect' || !inspectedStats) return
+  $('activeProtocolName').textContent = inspectedStats.protocolName
+  $('summaryRobot').textContent = `${inspectedStats.robotType} · API ${inspectedStats.apiLevel || 'unconfirmed'}`
+  $('summaryPipette').textContent = inspectedStats.pipetteSummary
+  $('summaryTransfers').textContent = `${inspectedStats.eventCount} mapped operations`
+  $('summaryLabware').textContent = inspectedStats.labwareSummary
   $('summaryTarget').textContent = 'Known targets only'
-  $('hardwareLinkTitle').textContent = 'Source: analysed Python'
-  $('hardwareLinkDescription').textContent = 'Hardware and blocks are read-only here. Your Build draft is unchanged.'
-  $('hardwareConflictList').hidden = true
-  $('syncHardwareSettings').hidden = true
 }
+window.addEventListener('lifefabs:select-inspected-step', ({detail:index}) => {
+  if (activeMode !== 'inspect' || previewStale || !currentSteps[index]) return
+  activeStepIndex = index
+  updateTimelineAndView()
+})
 
 async function analyseCurrentCode() {
   if (activeMode !== 'inspect') switchMode('inspect')
@@ -1869,14 +1833,13 @@ function switchMode(mode) {
   setInspectionModeUI(mode)
   if (mode === 'inspect') {
     currentSteps = []; activeStepIndex = 0; importedLayout = null; inspectedStats = null
-    renderInspection({hardware:[]}, [])
   }
   if ($('downloadCode')) $('downloadCode').disabled = mode === 'build' && !!externalPlan?.errors?.length
   $('modeBuild').classList.toggle('active', mode === 'build')
   $('modeInspect').classList.toggle('active', mode === 'inspect')
   $('modeBuild').setAttribute('aria-selected', String(mode === 'build'))
   $('modeInspect').setAttribute('aria-selected', String(mode === 'inspect'))
-  $('builderMode').classList.toggle('hidden', mode !== 'build')
+  $('builderMode').classList.toggle('hidden', !['build','inspect'].includes(mode))
   for (const [key, tab, panel] of [['devices','lfDevicesTab','lfStudio'],['library','lfLibraryTab','lfLibrary']]) {
     const selected=mode===key;
     $(tab).setAttribute('aria-selected',String(selected));
@@ -1884,14 +1847,13 @@ function switchMode(mode) {
     $(panel).hidden=!selected;
   }
   for (const id of ['codeEditor','analysisStatus']) $(id).closest('section')?.classList.toggle('hidden',!['build','inspect'].includes(mode));
-  $('inspectIntake').classList.toggle('hidden', mode !== 'inspect')
-  $('codeTitle').textContent = mode === 'build' ? 'Generated OT-2 Python protocol' : 'Uploaded / edited Python protocol'
-  $('codeState').textContent = mode === 'build' ? 'Generated template · editable' : 'Static inspection only'
+  $('inspectIntake').classList.toggle('hidden', !['build','inspect'].includes(mode))
+  if (mode === 'build') $('codeTitle').textContent = 'Generated OT-2 Python protocol'
+  if (mode === 'build') $('codeState').textContent = 'Generated template · editable'
   if (mode === 'inspect') {
     viewerSource = 'inspectPending'
     inspectEditorStale = false
     previewStale = true
-    updateTimelineAndView()
     updateProtocolOverview()
   } else {
     if (mode === 'build') buildProtocol()
@@ -2006,6 +1968,7 @@ function attachEvents() {
     const file = event.target.files?.[0]
     if (!file) return
     event.target.value = ''
+    if (activeMode !== 'inspect') switchMode('inspect')
     const ticket = ++inspectionTicket
     try {
       const source = await file.text()

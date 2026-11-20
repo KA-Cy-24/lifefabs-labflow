@@ -194,6 +194,7 @@
     return `<label class="flow-field">${label}<select data-block-key="${key}">${missing?'<option selected disabled value="">Choose a valid well</option>':''}${names.map(w=>`<option value="${escape(w)}" ${w===value?'selected':''}>${escape(w)}</option>`).join('')}</select></label>`;
   };
   function blockCaption(b) {
+    if(b.imported) return b.caption;
     const source=findLab(b.source)?.label||'Missing source',dest=findLab(b.destination)?.label||'Missing destination',target=findLab(b.target)?.label||'Missing labware';
     if(['distribute','consolidate'].includes(b.type))return `${b.volume} µL per well · ${source} → ${dest} · ${b.wellList||'choose wells'}`;
     if(b.type==='transfer')return `${b.volume} µL · ${source} ${b.sourceWell} → ${dest} ${b.destWell}`;
@@ -208,19 +209,20 @@
     if(b.type==='module'){const m=hardware().modules.find(x=>x.uid===b.moduleUid);return `${m?.name||'Choose a placed module'} · ${b.moduleAction} · ${b.moduleValue}`;}
     return '';
   }
+  // Imported operations use the same article, typography and color groups.
   function renderBlocks() {
     const root=$('flowBlocks');if(!root)return;
     root.innerHTML=blocks.map((b,i)=>`<div class="flow-insert" data-insert="${i}" tabindex="0" role="button" aria-label="Insert block before step ${i+1}"><span>＋</span></div>
-      <article role="listitem" draggable="true" tabindex="0" data-flow-id="${escape(b.id)}" class="flow-block flow-${escape(byType[b.type]?.group.toLowerCase()||'liquid')} ${b.id===selectedId?'selected':''}" aria-label="Step ${i+1}: ${escape(byType[b.type]?.label)}">
-      <span class="flow-block-grip" aria-hidden="true">⠿</span><div class="flow-block-main"><div class="flow-block-title"><span class="flow-block-number">${String(i+1).padStart(2,'0')}</span><strong>${escape(byType[b.type]?.label)}</strong><span class="flow-block-chevron">▸</span></div><small>${escape(blockCaption(b))}</small></div>
+      <article role="listitem" draggable="true" tabindex="0" data-flow-id="${escape(b.id)}" class="flow-block flow-${escape(byType[b.type]?.group.toLowerCase()||'liquid')} ${b.id===selectedId?'selected':''}" aria-label="Step ${i+1}: ${escape(byType[b.type]?.label || b.type)}">
+      <span class="flow-block-grip" aria-hidden="true">⠿</span><div class="flow-block-main"><div class="flow-block-title"><span class="flow-block-number">${String(i+1).padStart(2,'0')}</span><strong>${escape(byType[b.type]?.label || b.type)}</strong><span class="flow-block-chevron">▸</span></div><small>${escape(blockCaption(b))}</small></div>
       <div class="flow-block-actions"><button type="button" data-flow-duplicate="${escape(b.id)}" title="Duplicate block" aria-label="Duplicate step ${i+1}">⧉</button><button type="button" data-flow-remove="${escape(b.id)}" title="Remove block" aria-label="Remove step ${i+1}">×</button></div></article>`).join('')+`<div class="flow-insert" data-insert="${blocks.length}" tabindex="0" role="button" aria-label="Insert block at end"><span>＋ Add next block</span></div>`;
     $('flowCount').textContent=`${blocks.length} block${blocks.length===1?'':'s'}`;
   }
   function renderInspector() {
     const b=blocks.find(x=>x.id===selectedId);
     if(!b){$('flowInspectorTitle').textContent='Select a block';$('flowInspectorSubtitle').textContent='Click a colored block to set its parameters.';$('flowInspector').innerHTML='<p class="flow-empty">Select or add a block. Its real hardware targets, volumes and positions appear here.</p>';return;}
-    $('flowInspectorTitle').textContent=byType[b.type].label;
-    $('flowInspectorSubtitle').textContent=byType[b.type].help;
+    $('flowInspectorTitle').textContent=byType[b.type]?.label || b.type;
+    $('flowInspectorSubtitle').textContent=byType[b.type]?.help || '';
     const p=hardware().pipettes.map(x=>({id:x.mount,label:`${x.name} · ${x.mount}`,slot:'mount'}));
     const info=pipInfo(b.pipette);const channels=info?.channels||1;
     const t=['delay','pause','module'].includes(b.type);
@@ -263,7 +265,14 @@
     if(b.type==='pause')html+=txt('message','Message to operator',b.message);
     if(b.type==='drop')html+='<p class="flow-field-note">Drop the currently attached tip into the OT-2 fixed trash. Its physical coordinates are resolved by the robot, not by this diagram.</p>';
     html+=`<div class="flow-inspector-actions"><button type="button" id="flowMoveUp" class="button button-outline button-small">↑ Up</button><button type="button" id="flowMoveDown" class="button button-outline button-small">↓ Down</button></div>`;
+    if(b.imported) html+=`<p class="flow-field-note">${escape(b.note)}</p>`;
     $('flowInspector').innerHTML=html;
+    // Native select elements otherwise show their first option for unknown values.
+    if(b.imported) for(const field of $('flowInspector').querySelectorAll('select[data-block-key]')) {
+      const value=b[field.dataset.blockKey];
+      if(value!=null && [...field.options].some(o=>o.value===String(value))) field.value=String(value);
+      else field.add(new Option(value==null?'Not mapped':String(value), '', true, true),0);
+    }
   }
   function selectBlock(id){selectedId=id;renderBlocks();renderInspector();}
   function insertBlock(type,index=blocks.length) {
@@ -474,6 +483,7 @@
     return {name:$('flowName').value||'LifeFabs OT-2 visual workflow',apiLevel:api,pipettes:hw.pipettes.map(x=>({...x,load_name:x.api_load_name})),modules:hw.modules,labware:hw.labware,blocks,steps:errors.length?[]:steps,errors,warnings,python:lines.join('\n')+'\n'};
   }
   function compileAndSync(){
+    if (inspecting()) return;
     if(!ready)return;
     plan=validateAndCompile();
     const errors=$('flowValidation');errors.innerHTML=plan.errors.length?`<strong>Needs attention (${plan.errors.length})</strong><ul>${plan.errors.slice(0,7).map(e=>`<li>${escape(e)}</li>`).join('')}</ul>`:plan.warnings.length?`<strong>Review:</strong> ${escape(plan.warnings.slice(0,2).join(' '))}`:'✓ Hardware, blocks, deck and Python synchronized';
@@ -513,7 +523,7 @@
       const taken=new Set((gallery.placed_modules||[]).flatMap(x=>(x.reserved_slots||[x.location]).map(Number)));
       labware.forEach(l=>{if(l.moduleUid){const m=moduleByUid(l.moduleUid);if(m)l.slot=Number(m.location);}});
       if(labware.some(x=>!x.moduleUid&&taken.has(x.slot)))tellHardware('A module overlaps placed standalone labware. Move the conflicting hardware.',true);
-      if(ready){renderHardware();renderBlocks();renderInspector();compileAndSync();}
+      if(ready && !inspecting()){renderHardware();renderBlocks();renderInspector();compileAndSync();}
     });
     const pal=$('flowPalette');pal.innerHTML=TYPES.map(([type,label,group,help])=>`<button type="button" class="flow-palette-block flow-${group.toLowerCase()}" draggable="true" data-palette-type="${type}" title="${escape(help)}"><span>＋</span><strong>${label}</strong></button>`).join('');
     pal.addEventListener('click',e=>{const btn=e.target.closest('[data-palette-type]');if(btn)insertBlock(btn.dataset.paletteType);});
@@ -579,6 +589,60 @@
     $('flowName').addEventListener('input',()=>changed(false));$('flowApi').addEventListener('change',()=>changed(false));
     $('modeBuild').addEventListener('click',()=>{requestAnimationFrame(compileAndSync)});
   }
+  // Temporarily bind the native renderers to imported data. No compilation,
+  // placement event, persistence or mutation of the live Build objects occurs.
+  function renderImported(snapshot, index) {
+    if (!ready) return;
+    if (snapshot === renderedInspection) {
+      if (index === renderedInspectionIndex) return;
+      return withImported(snapshot,index,()=>{renderBlocks();renderInspector();});
+    }
+    withImported(snapshot,index,()=>{
+      renderHardware();renderBlocks();renderInspector();
+      $('flowHardwareSummary').textContent=`${gallery.mounted_pipettes.length} pipette(s) · ${labware.length} placed labware · ${gallery.placed_modules.length} module(s) · ${blocks.length} blocks · ${blocks.length} viewer events`;
+      $('flowValidation').textContent='Static Python preview · see analysis diagnostics.';
+      $('flowValidation').dataset.bad='false';
+      $('flowStatus').textContent='';
+    });
+  }
+  let renderedInspection=null, renderedInspectionIndex=-1;
+  function withImported(snapshot,index,paint) {
+    const draft=[gallery,labware,blocks,selectedId,labwareDefinitions];
+    const globals=[window.lifefabsDeckLabware,window.lifefabsOccupiedLabwareSlots];
+    try {
+      gallery=snapshot;labware=snapshot.labware;blocks=snapshot.blocks;selectedId=blocks[index]?.id;
+      labwareDefinitions=[...snapshot.definitions,...labwareDefinitions];
+      paint();
+      renderedInspection=snapshot;renderedInspectionIndex=index;
+    } finally {
+      [gallery,labware,blocks,selectedId,labwareDefinitions]=draft;
+      [window.lifefabsDeckLabware,window.lifefabsOccupiedLabwareSlots]=globals;
+    }
+  }
+  window.lifefabsVisualInspection={render:renderImported,restore(){
+    if (!ready || !renderedInspection) return;
+    renderedInspection=null;renderedInspectionIndex=-1;
+    renderHardware();renderBlocks();renderInspector();
+  }};
+
+  // Leave the controls and their typography in place. Block authoring events
+  // before their usual handlers while source controls and deck playback still work.
+  const inspecting=()=>window.lifefabsCore?.currentMode()==='inspect';
+  for (const type of ['click','keydown','input','change','dragstart','dragover','drop','beforeinput']) {
+    document.addEventListener(type,event=>{
+      if (!inspecting() || !event.target.closest?.('#instrumentGalleryPanel,#visualFlowPanel')) return;
+      if (event.target.closest('#instrumentSearch,[data-instrument-filter]')) return;
+      if (type==='keydown' && ['Tab','Escape'].includes(event.key)) return;
+      if (type==='keydown' && !['Enter',' '].includes(event.key) && !event.target.matches('input,textarea,select')) return;
+      const block=event.target.closest('[data-flow-id^="inspected-"]');
+      if (block && (type==='click' || type==='keydown') && !event.target.closest('button')) {
+        window.dispatchEvent(new CustomEvent('lifefabs:select-inspected-step',{detail:Number(block.dataset.flowId.slice(10))}));
+      }
+      if (type==='click' && event.target.closest('summary,a,.tool-help')) return;
+      event.preventDefault();event.stopImmediatePropagation();
+    },true);
+  }
+
   async function init(){
     try{
       const res=await fetch('data/labware-presets.json',{cache:'no-cache'});if(!res.ok)throw Error('Could not fetch labware presets');
@@ -588,6 +652,7 @@
       if(window.lifefabsHardwareLayout)gallery=window.lifefabsHardwareLayout;
       window.lifefabsV4Active=true;
       publishLabware();renderHardware();renderBlocks();selectedId=blocks[0]?.id||null;renderInspector();
+      if(window.lifefabsNativeInspection)renderImported(window.lifefabsNativeInspection,0);
       if(window.lifefabsCore){labwareDefinitions.filter(x=>x.custom).forEach(x=>window.lifefabsCore.registerLabwareDefinition(x));compileAndSync();}else window.addEventListener('lifefabs:core-ready',()=>{labwareDefinitions.filter(x=>x.custom).forEach(x=>window.lifefabsCore?.registerLabwareDefinition(x));compileAndSync();},{once:true});
     }catch(err){console.error(err);$('flowStatus').textContent=`Could not load visual editor: ${err.message}`;}
   }
