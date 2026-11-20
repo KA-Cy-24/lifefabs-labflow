@@ -70,3 +70,7 @@ html[data-theme="light"] .flow-canvas{background-color:#e9f1fc}html[data-theme="
 @media(max-width:580px){.hw-lab-card{grid-template-columns:1fr 1fr}.hw-lab-label{grid-column:1/-1}.hw-lab-card .flow-icon-btn{justify-self:end}}
 
 .custom-registry-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:9px}.custom-registry-actions label.button{cursor:pointer}.custom-device-maker textarea{width:100%;min-height:64px}
+
+/* Informational blocks use the native palette and canvas typography. */
+.flow-palette-block.flow-comment, .flow-block.flow-comment { --block-color:#4b5563; color:#fff; }
+#lfRecovery input[type="range"] { width:100%; max-width:28rem; }

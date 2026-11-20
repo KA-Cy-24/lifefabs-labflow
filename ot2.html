@@ -21,6 +21,7 @@
   <script src="js/tool-guide.js" defer></script>
   <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
   <script type="module" src="js/ot2.js"></script>
+  <script type="module" src="js/labflow-recovery-ui.js"></script>
   <script src="js/official-sim-client.js" defer></script>
 </head>
 <body class="lab-body">
@@ -78,7 +79,13 @@
 <div class="lf-actions"><button class="button button-outline" id="lfBrowse" type="button">Load repository catalogue</button><button class="button button-outline" id="lfLocal" type="button">Inspect a local file</button></div>
 <div id="lfCatalogue" hidden><label>Filter repository folders<input id="lfFilter" type="search" placeholder="Search by protocol name or slug"></label><p id="lfCount" role="status"></p><div id="lfResults" class="lf-results"></div></div>
 <p id="lfLibraryStatus" role="status" aria-live="polite"></p><div id="lfFiles" class="lf-actions" hidden><label>Choose a Python file<select id="lfFile"></select></label><button class="button button-outline" id="lfLoadFile" type="button">Load selected file</button></div>
-<div id="lfSource" hidden><h4 id="lfSourceTitle"></h4><p id="lfCompatibility"></p><div class="lf-actions"><button class="button button-outline" id="lfOpenSource" type="button">Open in Inspect Python</button><button class="button button-outline" id="lfDownload" type="button">Download source .py</button><a id="lfUpstream" target="_blank" rel="noopener">View upstream file ↗</a></div></div>
+<div id="lfSource" hidden><h4 id="lfSourceTitle"></h4><p id="lfCompatibility"></p>        <div>
+          <p role="status" id="lfCompanionStatus"></p>
+          <div class="form-actions" id="lfCompanionFiles"></div>
+          <div class="lf-fields" id="lfCompanionInputs"></div>
+          <p>Selections apply only to static inspection. Python and JSON downloads are unchanged; repository templates may still require the published Library download to run.</p>
+        </div>
+<div class="lf-actions"><button class="button button-outline" id="lfOpenSource" type="button">Open in Inspect Python</button><button class="button button-outline" id="lfDownload" type="button">Download source .py</button><a id="lfUpstream" target="_blank" rel="noopener">View upstream file ↗</a></div></div>
 </section>
 <aside class="lf-note"><strong>To test or adapt:</strong> Inspect Python gives a static preview for supported OT-2 code. Review warnings, edit a copy, then analyze it in the Opentrons App for the declared robot and API. Check the real deck before any run. Flex files are source-only in LabFlow.</aside>
 </div>
@@ -299,6 +306,18 @@
         <div class="panel-header"><div><span class="panel-kicker">SOURCE CODE</span><h2 id="codeTitle">Generated OT-2 Python protocol</h2><p>Edit the example or download the generated file.</p></div><div class="code-toolbar"><button id="copyCode" class="button button-outline" type="button">Copy</button><button id="downloadCode" class="button button-primary" type="button">Download .py</button></div></div>
         <div id="inspectIntake" class="source-intake"><div class="source-intake-row"><label for="pythonFile"><strong>Upload Python</strong></label><input id="pythonFile" type="file" accept=".py,.txt,text/plain"><button id="loadExample" class="button button-outline button-small" type="button">Load sample</button></div><p>Python → visual viewer: click Analyse code after uploading or pasting a script. The static checker recognises common explicit OT-2 load, pick-up, aspirate, dispense, drop-tip and simple transfer statements. It does not execute Python or the Opentrons API.</p></div>
         <textarea id="codeEditor" class="code-area" spellcheck="false" aria-label="Opentrons Python protocol editor" autocapitalize="off" autocomplete="off"></textarea>
+        <details class="source-intake" id="lfRecovery">
+          <summary><strong>Crop execution / prepare a recovery run</strong></summary>
+          <p>Check the current Python, then select between complete, tip-free groups. Hardware setup and code outside <code>run()</code> are copied unchanged. This creates a new run; it does not resume a paused robot.</p>
+          <button class="button button-outline button-small" type="button" id="lfRecoveryScan">Find recovery boundaries</button>
+          <div id="lfRecoveryControls" hidden>
+            <p><label for="lfRecoveryStart">Start of execution</label> · <output id="lfRecoveryFrom" for="lfRecoveryStart"></output><br><input type="range" id="lfRecoveryStart" min="0" step="1"></p>
+            <p><label for="lfRecoveryEnd">End of execution</label> · <output id="lfRecoveryTo" for="lfRecoveryEnd"></output><br><input type="range" id="lfRecoveryEnd" min="0" step="1"></p>
+            <p><label><input type="checkbox" id="lfRecoveryConfirm"> I checked the actual deck and wells, resolved any partly completed transfers, removed any attached tips, and verified the selected tip positions are unused.</label></p>
+            <button class="button button-outline button-small" type="button" id="lfRecoveryDownload" disabled>Download recovery Python</button>
+          </div>
+          <p role="status" id="lfRecoveryStatus"></p>
+        </details>
         <div class="code-footer"><span><strong id="codeLineCount">0 lines</strong> · <span id="codeApiLabel">API v2.15</span></span><span id="codeState">Generated template · editable</span><span class="kbd">Ctrl/⌘ + Enter</span> analyse</div>
       </section>
 

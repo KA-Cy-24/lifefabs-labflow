@@ -88,6 +88,69 @@
     const text=await r.text();if(!text.trim()||text.length>1_000_000)throw Error('Source is empty or over 1 MB.');
     return {text,file,path};
   }
+  // Fetch only direct JSON siblings from the same allowed repository and ref.
+  // Raw Python remains unchanged; companion files are data, never executable.
+  const jsonFilename = /^(?!\.)[\w.-]{1,150}\.json$/i;
+  async function companions(q, listing) {
+    try {
+      const entries = listing || await json(`${root}/contents/protocols/${q.slug}?ref=${q.ref}`);
+      if (!Array.isArray(entries)) throw Error('No directory listing.');
+      const all = entries.filter(x=>x.type==='file' && jsonFilename.test(x.name));
+      all.sort((a,b)=>Number(b.name==='fields.json')-Number(a.name==='fields.json'));
+      const files = [], failures = all.slice(24).map(x=>x.name);
+      // Small batches avoid large bursts of requests for accessory files.
+      for (let i=0;i<Math.min(all.length,24);i+=4) {
+        await Promise.all(all.slice(i,Math.min(i+4,24)).map(async entry=>{
+          try {
+            if (entry.size>1_000_000) throw Error('File exceeds 1 MB.');
+            const path = `${q.ref}/protocols/${q.slug}/${encodeURIComponent(entry.name)}`;
+            const response = await request(`${raw}/${path}`);
+            if (!response.ok || Number(response.headers.get('content-length'))>1_000_000) throw Error('Unavailable or too large.');
+            const text = await response.text();
+            if (text.length>1_000_000) throw Error('File exceeds limit.');
+            files.push({name:entry.name, text, data:JSON.parse(text)});
+          } catch { failures.push(entry.name); }
+        }));
+      }
+      return {files:files.sort((a,b)=>a.name.localeCompare(b.name)), failures};
+    } catch (error) { return {files:[],failures:[],error:error.message}; }
+  }
+  async function showWithCompanions(q, result, listing) {
+    tell('Checking for JSON files in the source directory…');
+    result.companions = await companions(q, listing);
+    show(result);
+    showCompanions(result.companions);
+  }
+  function showCompanions({files, failures, error}) {
+    $('lfCompanionStatus').textContent = error ? `Could not check companion JSON: ${error}` :
+      `${files.length} companion JSON file(s) loaded.${failures.length?' Unavailable, invalid or over the fetch limit: '+failures.join(', ')+'.':''}`;
+    const links = $('lfCompanionFiles'), inputs = $('lfCompanionInputs');
+    links.replaceChildren(); inputs.replaceChildren();
+    const fields = files.find(f=>f.name==='fields.json')?.data;
+    if (Array.isArray(fields)) for (const field of fields.slice(0,32)) {
+      if (!field || !/^[a-zA-Z_]\w{0,79}$/.test(field.name) || typeof field.name!=='string' || !Array.isArray(field.options)) continue;
+      const options = field.options.slice(0,100).filter(x=>x && ['string','number','boolean'].includes(typeof x.value));
+      if (!options.length) continue;
+      const label = document.createElement('label'), select = document.createElement('select');
+      label.textContent = typeof field.label==='string' ? field.label : field.name;
+      select.dataset.lfParameter = field.name;
+      select.append(new Option('Choose for inspection', ''));
+      options.forEach(o=>select.append(new Option(String(o.label??o.value),JSON.stringify(o.value))));
+      label.append(select); inputs.append(label);
+    }
+    for (const file of files) {
+      const button = document.createElement('button');
+      button.type='button'; button.className='button button-outline button-small';
+      button.textContent=`Download ${file.name}`;
+      button.onclick=()=>{
+        const url=URL.createObjectURL(new Blob([file.text],{type:'application/json'}));
+        const link=document.createElement('a');link.href=url;link.download=file.name;link.click();
+        setTimeout(()=>URL.revokeObjectURL(url),3000);
+      };
+      links.append(button);
+    }
+  }
+
   function show(result){
     source=result;$('lfSource').hidden=false;$('lfSourceTitle').textContent=result.file;
     $('lfUpstream').href=`https://github.com/Opentrons/Protocols/blob/${result.path}`;
@@ -98,23 +161,23 @@
     $('lfCompatibility').textContent=`${hint}${api?' · API '+api:''}. ${template?'Parameter helper not defined here: use the published download if available. ':''}Static inspection only; compatibility and execution are not verified.`;
     tell('Source loaded. Open it in the inspector or download the unchanged Python.');
   }
-  async function lookup(value,chosen){
+  async function lookup(value,chosen,directory){
     if(pending===true)return;
     const buttons=[...featured,$('lfFetchForm').querySelector('button'),$('lfLoadFile'),...$('lfResults').querySelectorAll('button')];
     buttons.forEach(b=>b.disabled=true);pending=true;source=null;$('lfSource').hidden=true;$('lfFiles').hidden=true;tell('Looking up Opentrons source…');
     try{
       const q=query(value);
       const exact=q.file||chosen;
-      if(exact){const r=await read(q,exact);if(!r)throw Error('That source file was not found.');show(r);return;}
+      if(exact){const r=await read(q,exact);if(!r)throw Error('That source file was not found.');await showWithCompanions(q,r,directory);return;}
       const preferred=Object.hasOwn(pinnedPaths,q.slug)?pinnedPaths[q.slug]:null;
-      if(preferred){const r=await read(q,preferred);if(r){show(r);return;}}
+      if(preferred){const r=await read(q,preferred);if(r){await showWithCompanions(q,r);return;}}
       const list=await json(`${root}/contents/protocols/${q.slug}?ref=${q.ref}`);
       if(!Array.isArray(list))throw Error('GitHub did not return a directory listing.');
       const names=list.filter(x=>x.type==='file'&&fileOK.test(x.name)).map(x=>x.name);
       if(!names.length)throw Error('No Python source found in this folder. Try the published Library download.');
-      if(names.length===1){const r=await read(q,names[0]);if(!r)throw Error('The listed file was not found.');show(r);return;}
+      if(names.length===1){const r=await read(q,names[0]);if(!r)throw Error('The listed file was not found.');await showWithCompanions(q,r,list);return;}
       $('lfFile').replaceChildren(...names.map(n=>new Option(n,n)));$('lfFiles').hidden=false;
-      $('lfLoadFile').onclick=()=>lookup(value,$('lfFile').value);tell('Multiple source files found. Choose the one for your robot and API.');
+      $('lfLoadFile').onclick=()=>lookup(value,$('lfFile').value,list);tell('Multiple source files found. Choose the one for your robot and API.');
     }catch(e){tell(e.name==='TimeoutError'?'GitHub did not respond in time. Try again or inspect a local file.':e.message,true);}
     finally{pending=false;buttons.forEach(b=>b.disabled=false);}
   }
@@ -122,11 +185,16 @@
   featured.forEach(b=>b.onclick=()=>select(b.dataset.lfSlug));
   $('lfFetchForm').onsubmit=e=>{e.preventDefault();lookup($('lfQuery').value.trim());};
   $('lfLocal').onclick=()=>$('modeInspect').click();
+  $('codeEditor').addEventListener('input',()=>{delete $('codeEditor').lfLibraryValues;});
   $('lfOpenSource').onclick=()=>{
     if(!source)return;
     const editor=$('codeEditor');
     if(editor.value.trim()&&editor.value!==source.text&&!window.confirm('Replace the Python editor contents with this repository source?'))return;
-    $('modeInspect').click();editor.value=source.text;editor.dispatchEvent(new Event('input',{bubbles:true}));$('analyzeCode').click();editor.focus();
+    $('modeInspect').click();editor.value=source.text;editor.dispatchEvent(new Event('input',{bubbles:true}));
+    const values = Object.fromEntries([...$('lfCompanionInputs').querySelectorAll('select[data-lf-parameter]')]
+      .filter(x=>x.value!=='').map(x=>[x.dataset.lfParameter,JSON.parse(x.value)]));
+    editor.lfLibraryValues={source:editor.value, values};
+    $('analyzeCode').click();editor.focus();
   };
   $('lfDownload').onclick=()=>{
     if(!source)return;

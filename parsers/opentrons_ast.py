@@ -196,9 +196,17 @@ class Reader:
                 return list(enumerate(self.iterable(args[0]), *args[1:]))
             if name == 'Point':
                 return {'point': True}  # Marker only; no coordinates claimed.
+            # Override only an absent Library helper with user-selected data.
+            # Never execute a get_values function supplied in Python source.
+            if name == 'get_values' and name not in self.env and not kw and args:
+                if all(type(key) is str and key in self.parameters and
+                       type(self.parameters[key]) in (str, int, float, bool) for key in args):
+                    return [self.parameters[key] for key in args]
+                self.warn(n, 'Library parameters not supplied. Select values on the Library card.')
+                return Unknown('Library runtime values are not supplied.')
             self.warn(n, f'{name}() not evaluated; effects are not modelled.')
             if name == 'get_values':
-                return Unknown('Library runtime values are not supplied.')
+                return Unknown('A Python-defined Library helper was not executed.')
             raise Stop(f'Unmodelled function {name}() may change protocol state.')
         if not isinstance(n.func, ast.Attribute):
             raise Stop('Indirect calls are unsupported.')
@@ -291,12 +299,14 @@ class Reader:
         volume = kw.get('volume', args[pos] if len(args) > pos else None)
         self.events.append(dict(line=n.lineno, owner=obj.id, method=method,
                                 targets=[target(x) for x in target_groups],
+                                message=(kw.get('msg', args[0] if args else '') if method == 'comment' and type(kw.get('msg', args[0] if args else '')) is str else None),
                                 volume=volume if method in ('aspirate', 'dispense', 'mix', 'air_gap', 'transfer', 'distribute', 'consolidate') and type(volume) in (int, float) else None))
 
 
-def analyse(source, definitions=None):
+def analyse(source, definitions=None, parameters=None):
     """Return a JSON-compatible preview, including the reason any trace stopped."""
     reader = Reader(definitions or {})
+    reader.parameters = parameters or {}
     result = dict(robot=None, api=None, name=None, parameter=None, hardware=reader.hardware,
                   events=reader.events, warnings=reader.warnings, status='partial')
     if len(source) > 250_000:

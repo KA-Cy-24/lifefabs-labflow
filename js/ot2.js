@@ -1712,9 +1712,9 @@ function renderInspection(model, steps) {
     const event = model.events[index], owner = byId.get(event.owner)
     const first = targets(event.targets[0]), last = targets(event.targets.at(-1)), t = first[0]
     return {id:`inspected-${index}`, type:owner?.kind==='module' ? 'module' : aliases[event.method] || event.method,
-      imported:true, caption:step.label, note:step.note, eventIndex:index, pipette:owner?.location,
+      imported:true, caption:event.method==='comment' ? event.message||step.label : step.label, note:step.note, eventIndex:index, pipette:owner?.location,
       target:t?.lab, well:t?.well, rack:event.method==='pick_up_tip' ? t?.lab : undefined,tipWell:event.method==='pick_up_tip' ? t?.well : undefined,
-      volume:event.volume, reference:t?.offset ? undefined : t?.reference, z:t?.offset || !['bottom','top'].includes(t?.reference) ? undefined : t.z,
+      message:event.message, volume:event.volume, reference:t?.offset ? undefined : t?.reference, z:t?.offset || !['bottom','top'].includes(t?.reference) ? undefined : t.z,
       source:t?.lab, sourceWell:t?.well, destination:last[0]?.lab,destWell:last[0]?.well,
       wellList:(event.method==='distribute' ? last : first).map(x=>x.well).join(', '),
       moduleUid:owner?.id,moduleAction:event.method}
@@ -1766,7 +1766,7 @@ async function analyseCurrentCode() {
   report('Loading Python AST reader…')
   let model, definitions
   try {
-    ({model,definitions} = await inspectPython(code, [...labwareDefs, ...customDefs], report))
+    ({model,definitions} = await inspectPython(code, [...labwareDefs, ...customDefs], report, $('codeEditor').lfLibraryValues))
   } catch (error) {
     if (!current()) return
     model = {status:'unavailable',hardware:[],events:[],warnings:[{message:error.message}]}
@@ -1973,6 +1973,7 @@ function attachEvents() {
     try {
       const source = await file.text()
       if (ticket !== inspectionTicket || activeMode !== 'inspect') return
+      delete $('codeEditor').lfLibraryValues
       $('codeEditor').value = source
       analyseCurrentCode()
     } catch (error) {
@@ -1981,6 +1982,7 @@ function attachEvents() {
   })
   $('loadExample').addEventListener('click', () => {
     switchMode('inspect')
+    delete $('codeEditor').lfLibraryValues
     $('codeEditor').value = makeProtocolExample()
     $('codeState').textContent = 'Sample script · edit and analyse'
     updateCodeMeta()
@@ -2028,6 +2030,7 @@ async function init() {
       if ($('codeApiLabel')) $('codeApiLabel').textContent = 'API v' + plan.apiLevel
       $('codeEditor').value = plan.errors.length ? '# Protocol not generated: resolve the hardware/block errors below.\n# ' + plan.errors.join('\n# ') + '\n' : plan.python
       lastGeneratedCode = $('codeEditor').value
+      window.dispatchEvent(new Event('lifefabs:source-generated'))
       $('codeTitle').textContent = 'Python generated from placed hardware + visual blocks'
       $('codeState').textContent = plan.errors.length ? 'BLOCKED · correct configuration' : 'Live from hardware + blocks · editable copy'
       $('formError').classList.toggle('show', !!plan.errors.length)

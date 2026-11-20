@@ -26,6 +26,7 @@
     ['move','Move to well','Motion','Request a specific target location'],
     ['drop','Drop tip','Tips','Discard the currently attached tip'],
     ['delay','Wait','Control','Delay for a specified duration'],
+    ['comment','Comment','Comment','Add an informational message to the run log; no motion or pause'],
     ['pause','Pause','Control','Stop and ask the operator to continue'],
     ['module','Operate a module / custom device','Module','Select a placed module and one of its supported actions; custom hardware uses an explicit operator handoff']
   ];
@@ -118,7 +119,7 @@
     const volume=Math.min(50,pipInfo(p)?.max||50);
     const firstModule=hardware().modules[0];
     return {id:blockId(),type,moduleUid:firstModule?.uid||'',moduleAction:allowedModuleActions(firstModule)[0][0],moduleValue:37,profile:'95:30,55:30,72:60',profileCycles:20,pipette:p,source:src?.id||'',destination:dst?.id||'',target:(type==='dispense'?dst:src)?.id||'',rack:rack?.id||'',
-      sourceWell:nextWell,destWell:nextWell,well:nextWell,tipWell:nextWell,volume,wellList:nextWell,tipPolicy:'once',touchTip:false,mixCycles:0,mixVolume:Math.min(20,volume),reference:'bottom',z:1,repetitions:3,seconds:5,radius:1,offset:-1,message:'Check the OT-2 setup before continuing'};
+      sourceWell:nextWell,destWell:nextWell,well:nextWell,tipWell:nextWell,volume,wellList:nextWell,tipPolicy:'once',touchTip:false,mixCycles:0,mixVolume:Math.min(20,volume),reference:'bottom',z:1,repetitions:3,seconds:5,radius:1,offset:-1,message:type==='comment'?'Add a protocol note':'Check the OT-2 setup before continuing'};
   }
   function validSlots() {
     const reserved = new Set(hardware().modules.flatMap(m => m.reserved_slots?.length ? m.reserved_slots.map(Number) : [Number(m.location)]));
@@ -205,7 +206,7 @@
     if(b.type==='airgap')return `${b.volume} µL of air`;
     if(b.type==='drop')return 'Dispose of the attached tip';
     if(b.type==='delay')return `${b.seconds} seconds`;
-    if(b.type==='pause')return b.message;
+    if(b.type==='pause'||b.type==='comment')return b.message;
     if(b.type==='module'){const m=hardware().modules.find(x=>x.uid===b.moduleUid);return `${m?.name||'Choose a placed module'} · ${b.moduleAction} · ${b.moduleValue}`;}
     return '';
   }
@@ -225,7 +226,7 @@
     $('flowInspectorSubtitle').textContent=byType[b.type]?.help || '';
     const p=hardware().pipettes.map(x=>({id:x.mount,label:`${x.name} · ${x.mount}`,slot:'mount'}));
     const info=pipInfo(b.pipette);const channels=info?.channels||1;
-    const t=['delay','pause','module'].includes(b.type);
+    const t=['delay','pause','module','comment'].includes(b.type);
     let html='';
     if(!t)html+=sel('pipette','Mounted pipette',p,b.pipette);
     if(b.type==='module'){
@@ -263,6 +264,7 @@
     if(b.type==='touch')html+=nfield('offset','Vertical rim offset',b.offset,-10,10,0.5,'mm')+nfield('radius','Rim radius fraction',b.radius,0,1,0.1,'');
     if(b.type==='delay')html+=nfield('seconds','Wait time',b.seconds,0,36000,1,'s');
     if(b.type==='pause')html+=txt('message','Message to operator',b.message);
+    if(b.type==='comment')html+=txt('message','Run-log comment',b.message);
     if(b.type==='drop')html+='<p class="flow-field-note">Drop the currently attached tip into the OT-2 fixed trash. Its physical coordinates are resolved by the robot, not by this diagram.</p>';
     html+=`<div class="flow-inspector-actions"><button type="button" id="flowMoveUp" class="button button-outline button-small">↑ Up</button><button type="button" id="flowMoveDown" class="button button-outline button-small">↓ Down</button></div>`;
     if(b.imported) html+=`<p class="flow-field-note">${escape(b.note)}</p>`;
@@ -284,7 +286,7 @@
     const hw=hardware(),errors=[],lines=[],steps=[],warnings=[];
     const usedSlots=new Set(),pt={},pipetteNames={},labNames={},rackNames={};
     const api=$('flowApi').value;
-    if(blocks.some(b=>!['module','delay','pause'].includes(b.type))&&!hw.pipettes.length)errors.push('Mount at least one supported pipette in Hardware Configurator.');
+    if(blocks.some(b=>!['module','delay','pause','comment'].includes(b.type))&&!hw.pipettes.length)errors.push('Mount at least one supported pipette in Hardware Configurator.');
     hw.pipettes.forEach(p=>{
       if(!pipetteKnown[p.api_load_name])errors.push(`${p.name} (${p.api_load_name}) is not in the validated protocol-builder model.`);
       if(pipetteKnown[p.api_load_name])pipetteNames[p.mount]=`pipette_${p.mount}`;
@@ -297,7 +299,7 @@
     }
     hw.modules.forEach(m=>(m.reserved_slots||[m.location]).forEach(slot=>{if(usedSlots.has(num(slot)))errors.push(`Module ${m.name} conflicts with standalone labware in slot ${slot}.`)}));
     if(hw.labware.filter(l=>l.moduleUid).some((l,i,arr)=>arr.findIndex(other=>other.moduleUid===l.moduleUid)!==i))errors.push('Only one labware item may be stacked on each module.');
-    if(blocks.some(b=>!['module','delay','pause'].includes(b.type))&&!hw.labware.length)errors.push('Place at least one labware item in Section 1.');
+    if(blocks.some(b=>!['module','delay','pause','comment'].includes(b.type))&&!hw.labware.length)errors.push('Place at least one labware item in Section 1.');
     const header=[
       'from opentrons import protocol_api','',
       `metadata = {"protocolName": ${JSON.stringify($('flowName').value||'LifeFabs visual protocol')}, "author": "LifeFabs visual blocks"}`,
@@ -370,7 +372,7 @@
     };
     blocks.forEach((b,index)=>{
       const name=`Block ${index+1} (${byType[b.type]?.label||b.type})`;
-      if(!['delay','pause','module'].includes(b.type)&&!pipetteNames[b.pipette])errors.push(`${name}: select a pipette currently mounted in Section 1.`);
+      if(!['delay','pause','module','comment'].includes(b.type)&&!pipetteNames[b.pipette])errors.push(`${name}: select a pipette currently mounted in Section 1.`);
       const pip=pipetteNames[b.pipette]||'MISSING_PIPETTE',spec=pipInfo(b.pipette),l=live[b.pipette];
       const vol=num(b.volume),hasVolume=['transfer','aspirate','dispense','mix','airgap'].includes(b.type);
       if(hasVolume&&(!Number.isFinite(vol)||vol<=0||spec&&vol>spec.max))errors.push(`${name}: volume must be positive and no greater than ${spec?.max||'the pipette maximum'} µL.`);
@@ -475,6 +477,10 @@
       } else if(b.type==='delay'){
         if(!Number.isFinite(num(b.seconds))||num(b.seconds)<0)errors.push(`${name}: delay seconds must be nonnegative.`);
         lines.push(`    protocol.delay(seconds=${pyNum(b.seconds)})`);event('delay',b,null,null,0,`Wait ${b.seconds} seconds.`);
+      } else if(b.type==='comment'){
+        const message=String(b.message??'').slice(0,500);
+        lines.push(`    protocol.comment(${JSON.stringify(message)})`);
+        event('comment',b,null,null,0,message||'Run-log comment.');
       } else if(b.type==='pause'){
         lines.push(`    protocol.pause(${JSON.stringify(String(b.message||'Review protocol'))})`);event('pause',b,null,null,0,String(b.message));
       }

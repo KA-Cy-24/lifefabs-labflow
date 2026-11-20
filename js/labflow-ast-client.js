@@ -6,7 +6,7 @@ function reset(error) {
   for (const job of pending.values()) { clearTimeout(job.timer); job.reject(error); }
   pending.clear();
 }
-function analyse(source, ordering) {
+function analyse(source, ordering, parameters={}, crop=null) {
   if (!worker) {
     worker = new Worker(new URL('./labflow-ast-worker.js', import.meta.url));
     worker.onmessage = ({data}) => {
@@ -22,7 +22,7 @@ function analyse(source, ordering) {
     const id = ++nextId;
     const timer = setTimeout(() => reset(Error('Python analysis timed out.')), 45000);
     pending.set(id, {resolve,reject,timer});
-    worker.postMessage({id,source,ordering});
+    worker.postMessage({id,source,ordering,parameters,crop});
   });
 }
 
@@ -46,11 +46,18 @@ async function fetchOfficial(name) {
   } catch { return null; }
 }
 
-export async function inspectPython(source, bundled, report) {
+export async function requestRecovery(source, first=null, last=null) {
+  const result=await analyse(source, {}, {}, {first,last});
+  if(result.ineligible) throw Error(result.ineligible);
+  return result;
+}
+
+export async function inspectPython(source, bundled, report, input) {
+  const parameters = input?.source === source ? input.values : {};
   const definitions = new Map(bundled.map(d => [d.loadName,d]));
   const ordering = Object.create(null);
   for (const d of definitions.values()) { const order = orderOf(d); if (order) ordering[d.loadName] = order; }
-  let model = await analyse(source, ordering);
+  let model = await analyse(source, ordering, parameters);
   // A first pass discovers literal loads even if unknown well ordering prevents tracing the rest.
   for (let pass=0, requested=new Set(); pass<3 && model.status!=='source-only'; pass++) {
     const names = [...new Set(model.hardware.filter(h => h.kind==='labware' && h.catalogue && !definitions.has(h.name) && !requested.has(h.name)).map(h => h.name))].slice(0,16);
@@ -64,7 +71,7 @@ export async function inspectPython(source, bundled, report) {
       definitions.set(name,def); ordering[name]=def.ordering; changed=true;
     }));
     if (!changed) break;
-    model = await analyse(source,ordering);
+    model = await analyse(source,ordering,parameters);
   }
   return {model,definitions};
 }
