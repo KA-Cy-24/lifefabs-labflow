@@ -1,31 +1,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const wait = message => { $('lfLibraryStatus').textContent=message; };
-  const entries = [
-    ['bca_protein_assay','Pierce BCA Protein Assay · attached fixture declares Flex 2.18'],
-    ['sci-lucif-assay3','Luciferase Reporter Assay · Protocol 3: Treatment'],
-    ['transient_transfection_of_A549cells_Protocol_2','Transient Transfection of A549 Cells · Protocol 2'],
-  ];
-  const G=window.LabFlowGeometry;
-  const panel=$('lfStudio');
-  panel.innerHTML=`<h2>Custom Devices</h2>
-    <p>Define the installed assembly as single-slot, single-channel OT-2 labware. A valid file is not a clearance or calibration check.</p>
-    <form id="lfForm">
-    <fieldset><legend>1 · Assembly</legend><div class="lf-fields">
-    <label>Display name<input name="name" required maxlength="100"></label><label>Load name<input name="loadName" pattern="[a-z0-9_]+" required placeholder="custom_sampling_fixture_v1"></label>
-    <label>Manufacturer / builder<input name="brand" required></label><label>Definition revision<input name="version" type="number" min="1" step="1" value="1" required></label>
-    <label>Category<select name="category"><option value="tubeRack">Tube rack</option><option value="reservoir">Reservoir</option><option value="wellPlate">Well plate</option></select></label>
-    ${['X length','Y width','Z height'].map((x,i)=>`<label>${x} (mm)<input name="${'xyz'[i]}" type="number" min="0.01" step="any" required></label>`).join('')}
-    </div><details><summary>Use an STL to measure the envelope</summary><p>Only the bounding box is imported. Confirm the installed base, axis directions and the mounting fixture before accepting it. Measure well locations independently.</p>
-    <div class="lf-fields"><label>ASCII or binary STL<input id="lfSTL" type="file" accept=".stl"></label><label>Model units<select id="lfUnits"><option value="">Select units</option><option value="1">Millimeters</option><option value="10">Centimeters</option><option value="25.4">Inches</option><option value="1000">Meters</option></select></label><label>CAD axes mapped to deck X/Y/Z<select id="lfAxes">${['xyz','xzy','yxz','yzx','zxy','zyx'].map(x=>`<option>${x}</option>`).join('')}</select></label></div>
-    <label><input type="checkbox" id="lfAxesConfirmed"> The selected axes match the mounted assembly and its base.</label><button type="button" id="lfMeasure">Use STL envelope</button></details></fieldset>
-    <fieldset><legend>2 · Pipette targets</legend><p>Origin: left-front-bottom of the installed assembly. X goes right, Y goes back, Z goes up. Enter each opening’s center X/Y and the well-bottom Z. All dimensions are in mm; capacity is in µL.</p>
-    <div id="lfRows"></div><button type="button" id="lfAdd">Add target</button> <button type="button" id="lfPreview">Check and preview</button>
-    <div id="lfPlot"></div></fieldset>
-    <fieldset><legend>3 · Export or add to catalogue</legend><p>Export for review in the Opentrons App or Protocol Designer. Adding to LabFlow makes the definition available in the Hardware Configurator; it does not place it on the deck.</p>
-    <button type="submit">Download labware JSON</button> <button type="button" id="lfRegister">Add to Hardware Configurator</button></fieldset>
-    <p id="lfStatus" role="status"></p></form>`;
+  const G = window.LabFlowGeometry;
   const form=$('lfForm');
   const status=(s,error=false)=>{ $('lfStatus').textContent=s; $('lfStatus').classList.toggle('lf-error',error); };
   const rows=$('lfRows');
@@ -38,6 +14,7 @@
       ${[['x','X center'],['y','Y center'],['z','Z bottom'],['depth','Depth'],['diameter','Diameter'],['xDimension','Opening X'],['yDimension','Opening Y'],['totalLiquidVolume','Capacity (µL)']].map(([k,v])=>`<label ${k.endsWith('Dimension')?'hidden':''}>${v}<input data-key="${k}" type="number" min="0" step="any" ${k.endsWith('Dimension')?'disabled':'required'}></label>`).join('')}</div><button type="button" class="lf-remove">Remove target</button>`;
     const shape=el.querySelector('select');
     shape.onchange=()=>{for(const k of ['diameter','xDimension','yDimension']){const input=el.querySelector(`[data-key="${k}"]`);input.disabled=(k==='diameter')!==(shape.value==='circular');input.required=!input.disabled;input.parentNode.hidden=input.disabled;}};
+    el.querySelector('button').className='button button-outline button-small lf-remove';
     el.querySelector('button').onclick=()=>{el.remove(); invalidate();};
     rows.append(el);invalidate();
   }
@@ -78,51 +55,108 @@
   form.onsubmit=e=>{e.preventDefault();withDefinition(raw=>{const url=URL.createObjectURL(new Blob([JSON.stringify(raw,null,2)+'\n'],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=raw.parameters.loadName+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);plot(raw);});};
   $('lfRegister').onclick=()=>withDefinition(raw=>{if(!window.labflowRegisterLabware)throw Error('Workbench is still loading.');window.labflowRegisterLabware(raw);status('Added to the catalogue. Open Build and place it in the Hardware Configurator.');});
 
-  $('lfLibrary').innerHTML=`<h2>Protocol Library</h2><p>Fetch public Opentrons repository source for static inspection, never execution. Repository templates may need values supplied by the original Library download.</p>
-   <div id="lfCurated" class="lf-fields"></div><form id="lfFetchForm"><label>Opentrons protocol slug, Library URL, or GitHub Python file URL<input id="lfQuery" required></label>
-   <label>Branch for slug lookup<select id="lfBranch"><option>master</option><option>develop</option></select></label> <button type="submit">Fetch source for inspection</button></form>
-   <p id="lfLibraryStatus" role="status"></p><button id="lfOpenSource" type="button" hidden>Open source in Inspect Python</button>`;
-  const repo='https://raw.githubusercontent.com/Opentrons/Protocols/';
-  for(const [slug,title] of entries){
-    const item=document.createElement('div'), link=document.createElement('a'), b=document.createElement('button');
-    link.href='https://library.opentrons.com/p/'+slug;link.textContent=title;link.target='_blank';link.rel='noopener noreferrer';
-    b.textContent='Select for lookup';b.type='button';b.onclick=()=>{$('lfQuery').value=slug;if(slug==='sci-lucif-assay3')$('lfBranch').value='develop';};
-    item.append(link,document.createElement('br'),b);$('lfCurated').append(item);
+  // All discovery starts in the official Opentrons staging branch.
+  const root='https://api.github.com/repos/Opentrons/Protocols';
+  const raw='https://raw.githubusercontent.com/Opentrons/Protocols';
+  const ref='develop', slugOK=/^[A-Za-z0-9_-]+$/, fileOK=/^(?!\.)[\w.-]+\.py$/;
+  const tell=(message,error=false)=>{const p=$('lfLibraryStatus');p.textContent=message;p.classList.toggle('lf-error',error);};
+  const featured=[...document.querySelectorAll('[data-lf-slug]')];
+  const pinnedPaths={'sci-lucif-assay3':'sci-lucif-assay3.ot2.apiv2.py'};
+  let source, pending, catalogue, catalogueBusy=false, expanded=false;
+  async function request(url){
+    const r=await fetch(url,{credentials:'omit',redirect:'error',signal:AbortSignal.timeout(12000)});
+    if(r.status===403||r.status===429)throw Error('GitHub denied or rate-limited this request. Try opening the upstream file or uploading a local copy.');
+    return r;
   }
-  function parseQuery(q,branch){
-    const slug=/^[a-zA-Z0-9_-]+$/;
-    if(slug.test(q))return {slug:q,ref:branch};
-    const url=new URL(q);
-    if(url.protocol!=='https:')throw Error('Use an HTTPS Opentrons URL.');
-    const p=url.pathname.split('/').filter(Boolean);
-    if(url.host==='library.opentrons.com'&&p.length===2&&p[0]==='p'&&slug.test(p[1]))return {slug:p[1],ref:branch};
-    const gh=url.host==='github.com'&&p[2]==='blob', raw=url.host==='raw.githubusercontent.com';
-    const idx=gh?3:2;
-    if((gh||raw)&&p[0]==='Opentrons'&&p[1]==='Protocols'&&p[idx+1]==='protocols'&&/^(?:master|develop|[a-f0-9]{40})$/.test(p[idx])&&p.length===idx+4&&slug.test(p[idx+2])&&/^[\w.-]+\.py$/.test(p[idx+3]))return {slug:p[idx+2],ref:p[idx],filename:p[idx+3]};
-    throw Error('Expected an Opentrons Library URL or a Python file under Opentrons/Protocols → protocols.');
+  async function json(url){const r=await request(url);if(!r.ok)throw Error(`GitHub returned HTTP ${r.status}. Check the protocol slug or use the published Library download.`);return r.json();}
+  function query(q){
+    if(slugOK.test(q))return {slug:q,ref};
+    let u;try{u=new URL(q);}catch{throw Error('Enter a protocol slug or an Opentrons URL.');}
+    if(u.protocol!=='https:')throw Error('Use an HTTPS Opentrons link.');
+    const p=u.pathname.split('/').filter(Boolean);
+    if(u.host==='library.opentrons.com'&&p[0]==='p'&&p.length===2&&slugOK.test(p[1]))return {slug:p[1],ref};
+    const tail=u.host==='github.com'&&p[2]==='blob'?p.slice(3):u.host==='raw.githubusercontent.com'?p.slice(2):[];
+    if(p[0]==='Opentrons'&&p[1]==='Protocols'&&tail.length===4&&(tail[0]===ref||/^[a-f0-9]{40}$/.test(tail[0]))&&tail[1]==='protocols'&&slugOK.test(tail[2])&&fileOK.test(tail[3]))return {slug:tail[2],ref:tail[0],file:tail[3]};
+    throw Error('Use a Library link or an Opentrons/Protocols Python file URL on develop or at an exact commit.');
   }
-  async function request(url){return fetch(url,{credentials:'omit',redirect:'error',signal:AbortSignal.timeout(10000)});}
-  async function findSource(q){
-    const base=`${repo}${q.ref}/protocols/${q.slug}/`;
-    const read=async file=>{const url=base+file,r=await request(url);if(r.status===404)return null;if(!r.ok)throw Error(`GitHub returned HTTP ${r.status}.`);const text=await r.text();if(text.length>1_000_000||!text.trim())throw Error('Source is empty or over 1 MB.');return {text,url};};
-    if(q.filename)return (await read(q.filename))||(()=>{throw Error('This exact source file was not found.');})();
-    const conventional=await read(q.slug+'.ot2.apiv2.py');if(conventional)return conventional;
-    const listing=await request(`https://api.github.com/repos/Opentrons/Protocols/contents/protocols/${q.slug}?ref=${q.ref}`);
-    if(!listing.ok)throw Error(`Repository directory lookup returned HTTP ${listing.status}. Try an exact GitHub Python file URL or import the Library download.`);
-    const matches=(await listing.json()).filter(x=>x.type==='file'&&/^[\w.-]+\.py$/.test(x.name));
-    if(matches.length!==1)throw Error('No unique Python source in that directory. Supply an exact file URL or upload the Library download.');
-    const result=await read(matches[0].name);if(!result)throw Error('Source disappeared before it could be fetched.');return result;
+  async function read(q,file){
+    const path=`${q.ref}/protocols/${q.slug}/${file}`;
+    const r=await request(`${raw}/${path}`);
+    if(r.status===404)return null;
+    if(!r.ok)throw Error(`Source download returned HTTP ${r.status}.`);
+    if(Number(r.headers.get('content-length'))>1_000_000)throw Error('Source is over 1 MB.');
+    const text=await r.text();if(!text.trim()||text.length>1_000_000)throw Error('Source is empty or over 1 MB.');
+    return {text,file,path};
   }
-  let source=null;
-  $('lfFetchForm').onsubmit=async e=>{
-    e.preventDefault();const submit=e.submitter||$('lfFetchForm').querySelector('button[type="submit"]');submit.disabled=true;source=null;$('lfOpenSource').hidden=true;wait('Looking up repository source…');
-    try{const q=parseQuery($('lfQuery').value.trim(),$('lfBranch').value);source=await findSource(q);wait(`Fetched ${source.url}. Static inspection only. A repository template may differ from the downloadable protocol.`);$('lfOpenSource').hidden=false;}
-    catch(err){wait(`${err.message} You can still import the downloaded .py in Inspect Python.`);}finally{submit.disabled=false;}
-  };
+  function show(result){
+    source=result;$('lfSource').hidden=false;$('lfSourceTitle').textContent=result.file;
+    $('lfUpstream').href=`https://github.com/Opentrons/Protocols/blob/${result.path}`;
+    const robot=result.text.match(/["']robotType["']\s*:\s*["'](Flex|OT-2)["']/)?.[1];
+    const hint=robot??(/\.ot2\./.test(result.file)?'OT-2 (filename hint)':/\.flex\./.test(result.file)?'Flex (filename hint)':'Robot not identified');
+    const api=result.text.match(/["']apiLevel["']\s*:\s*["'](\d+\.\d+)["']/)?.[1];
+    const template=/\bget_values\s*\(/.test(result.text)&&!/^\s*def get_values\s*\(/m.test(result.text);
+    $('lfCompatibility').textContent=`${hint}${api?' · API '+api:''}. ${template?'Parameter helper not defined here: use the published download if available. ':''}Static inspection only; compatibility and execution are not verified.`;
+    tell('Source loaded. Open it in the inspector or download the unchanged Python.');
+  }
+  async function lookup(value,chosen){
+    if(pending===true)return;
+    const buttons=[...featured,$('lfFetchForm').querySelector('button'),$('lfLoadFile'),...$('lfResults').querySelectorAll('button')];
+    buttons.forEach(b=>b.disabled=true);pending=true;source=null;$('lfSource').hidden=true;$('lfFiles').hidden=true;tell('Looking up Opentrons source…');
+    try{
+      const q=query(value);
+      const exact=q.file||chosen;
+      if(exact){const r=await read(q,exact);if(!r)throw Error('That source file was not found.');show(r);return;}
+      const preferred=Object.hasOwn(pinnedPaths,q.slug)?pinnedPaths[q.slug]:null;
+      if(preferred){const r=await read(q,preferred);if(r){show(r);return;}}
+      const list=await json(`${root}/contents/protocols/${q.slug}?ref=${q.ref}`);
+      if(!Array.isArray(list))throw Error('GitHub did not return a directory listing.');
+      const names=list.filter(x=>x.type==='file'&&fileOK.test(x.name)).map(x=>x.name);
+      if(!names.length)throw Error('No Python source found in this folder. Try the published Library download.');
+      if(names.length===1){const r=await read(q,names[0]);if(!r)throw Error('The listed file was not found.');show(r);return;}
+      $('lfFile').replaceChildren(...names.map(n=>new Option(n,n)));$('lfFiles').hidden=false;
+      $('lfLoadFile').onclick=()=>lookup(value,$('lfFile').value);tell('Multiple source files found. Choose the one for your robot and API.');
+    }catch(e){tell(e.name==='TimeoutError'?'GitHub did not respond in time. Try again or inspect a local file.':e.message,true);}
+    finally{pending=false;buttons.forEach(b=>b.disabled=false);}
+  }
+  function select(slug){$('lfQuery').value=slug;lookup(slug);}
+  featured.forEach(b=>b.onclick=()=>select(b.dataset.lfSlug));
+  $('lfFetchForm').onsubmit=e=>{e.preventDefault();lookup($('lfQuery').value.trim());};
+  $('lfLocal').onclick=()=>$('modeInspect').click();
   $('lfOpenSource').onclick=()=>{
     if(!source)return;
     const editor=$('codeEditor');
-    if(editor.value.trim()&&!window.confirm('Replace the current editor contents with this repository source?'))return;
+    if(editor.value.trim()&&editor.value!==source.text&&!window.confirm('Replace the Python editor contents with this repository source?'))return;
     $('modeInspect').click();editor.value=source.text;editor.dispatchEvent(new Event('input',{bubbles:true}));$('analyzeCode').click();editor.focus();
+  };
+  $('lfDownload').onclick=()=>{
+    if(!source)return;
+    const href=URL.createObjectURL(new Blob([source.text],{type:'text/plain;charset=utf-8'}));
+    const a=document.createElement('a');a.href=href;a.download=source.file;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(href),5000);
+  };
+  function renderCatalogue(){
+    const terms=$('lfFilter').value.toLowerCase().split(/[\s_-]+/).filter(Boolean);
+    const matches=catalogue.filter(slug=>terms.every(t=>slug.toLowerCase().includes(t)));
+    const limit=expanded?200:36;
+    $('lfCount').textContent=`${matches.length} matching folders${matches.length>limit?` · showing ${limit}; refine your search for more specific results`:''}.`;
+    const buttons=matches.slice(0,limit).map(slug=>{const b=document.createElement('button');b.type='button';b.className='button button-outline button-small';b.textContent=slug;b.onclick=()=>select(slug);return b;});
+    if(!expanded&&matches.length>limit){const b=document.createElement('button');b.className='button button-outline button-small';b.textContent='Show more';b.onclick=()=>{expanded=true;renderCatalogue();};buttons.push(b);}
+    $('lfResults').replaceChildren(...buttons);
+  }
+  $('lfFilter').oninput=()=>{expanded=false;renderCatalogue();};
+  $('lfBrowse').onclick=async()=>{
+    if(catalogue){$('lfCatalogue').hidden=false;$('lfFilter').focus();return;}
+    if(catalogueBusy)return;
+    catalogueBusy=true;$('lfBrowse').disabled=true;$('lfBrowse').textContent='Loading repository catalogue…';
+    try{
+      // Non-recursive tree queries avoid the recursive tree size limit for the whole repo.
+      const tree=await json(`${root}/git/trees/${ref}`);
+      const folder=tree.tree?.find(x=>x.path==='protocols'&&x.type==='tree');
+      if(!/^[a-f0-9]{40}$/.test(folder?.sha??''))throw Error('Could not locate the protocols tree.');
+      const dirs=await json(`${root}/git/trees/${folder.sha}`);
+      if(!Array.isArray(dirs.tree)||dirs.truncated)throw Error('GitHub did not return a complete catalogue. Search by slug or open the upstream repository.');
+      catalogue=dirs.tree.filter(x=>x.type==='tree'&&slugOK.test(x.path)).map(x=>x.path).sort((a,b)=>a.localeCompare(b));
+      $('lfCatalogue').hidden=false;renderCatalogue();$('lfFilter').focus();
+    }catch(e){tell(`Catalogue unavailable: ${e.message}`,true);}
+    finally{catalogueBusy=false;$('lfBrowse').disabled=false;$('lfBrowse').textContent=catalogue?'Search repository catalogue':'Load repository catalogue';}
   };
 })();

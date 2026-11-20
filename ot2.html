@@ -41,10 +41,47 @@
     <button id="lfDevicesTab" type="button" role="tab" aria-selected="false" aria-controls="lfStudio">03 Custom Devices</button>
     <button id="lfLibraryTab" type="button" role="tab" aria-selected="false" aria-controls="lfLibrary">04 Protocol Library</button>
   </div>
-  <section id="lfStudio" class="panel lf-panel" role="tabpanel" aria-labelledby="lfDevicesTab" hidden></section>
-  <section id="lfLibrary" class="panel lf-panel" role="tabpanel" aria-labelledby="lfLibraryTab" hidden></section>
 
   <main class="lab-main">
+    <section id="lfStudio" class="panel lf-panel" role="tabpanel" aria-labelledby="lfDevicesTab" hidden>
+<header class="panel-header"><div><span class="panel-kicker">03 · LABWARE STUDIO</span><h2>Custom Devices</h2><p>Measure the mounted assembly, define pipette targets, and export Opentrons labware JSON.</p></div></header><div class="lf-body">
+    <p>Define the installed assembly as single-slot, single-channel OT-2 labware. A valid file is not a clearance or calibration check.</p>
+    <form id="lfForm">
+    <fieldset><legend>1 · Assembly</legend><div class="lf-fields">
+    <label>Display name<input name="name" required maxlength="100"></label><label>Load name<input name="loadName" pattern="[a-z0-9_]+" required placeholder="custom_sampling_fixture_v1"></label>
+    <label>Manufacturer / builder<input name="brand" required></label><label>Definition revision<input name="version" type="number" min="1" step="1" value="1" required></label>
+    <label>Category<select name="category"><option value="tubeRack">Tube rack</option><option value="reservoir">Reservoir</option><option value="wellPlate">Well plate</option></select></label>
+    <label>X length (mm)<input name="x" type="number" min="0.01" step="any" required></label><label>Y width (mm)<input name="y" type="number" min="0.01" step="any" required></label><label>Z height (mm)<input name="z" type="number" min="0.01" step="any" required></label>
+    </div><details><summary>Use an STL to measure the envelope</summary><p>Only the bounding box is imported. Confirm the installed base, axis directions and the mounting fixture before accepting it. Measure well locations independently.</p>
+    <div class="lf-fields"><label>ASCII or binary STL<input id="lfSTL" type="file" accept=".stl"></label><label>Model units<select id="lfUnits"><option value="">Select units</option><option value="1">Millimeters</option><option value="10">Centimeters</option><option value="25.4">Inches</option><option value="1000">Meters</option></select></label><label>CAD axes mapped to deck X/Y/Z<select id="lfAxes"><option>xyz</option><option>xzy</option><option>yxz</option><option>yzx</option><option>zxy</option><option>zyx</option></select></label></div>
+    <label><input type="checkbox" id="lfAxesConfirmed"> The selected axes match the mounted assembly and its base.</label><button class="button button-outline" type="button" id="lfMeasure">Use STL envelope</button></details></fieldset>
+    <fieldset><legend>2 · Pipette targets</legend><p>Origin: left-front-bottom of the installed assembly. X goes right, Y goes back, Z goes up. Enter each opening’s center X/Y and the well-bottom Z. All dimensions are in mm; capacity is in µL.</p>
+    <div id="lfRows"></div><button class="button button-outline" type="button" id="lfAdd">Add target</button> <button class="button button-outline" type="button" id="lfPreview">Check and preview</button>
+    <div id="lfPlot"></div></fieldset>
+    <fieldset><legend>3 · Export or add to catalogue</legend><p>Export for review in the Opentrons App or Protocol Designer. Adding to LabFlow makes the definition available in the Hardware Configurator; it does not place it on the deck.</p>
+    <button class="button button-outline" type="submit">Download labware JSON</button> <button class="button button-outline" type="button" id="lfRegister">Add to Hardware Configurator</button></fieldset>
+    <p id="lfStatus" role="status"></p></form></div>
+    </section>
+    <section id="lfLibrary" class="panel lf-panel" role="tabpanel" aria-labelledby="lfLibraryTab" hidden>
+<header class="panel-header"><div><span class="panel-kicker">04 · PROTOCOL LIBRARY</span><h2>Start from an Opentrons protocol</h2><p>Find an example, inspect a copy in LabFlow, or download the source to adapt locally.</p></div><a class="button button-outline button-small" href="https://github.com/Opentrons/Protocols/tree/develop" target="_blank" rel="noopener">Browse upstream ↗</a></header>
+<div class="lf-body">
+<aside class="lf-note"><strong>Source: Opentrons/Protocols · develop</strong><br>This is the upstream staging branch. Source may be a template, not a ready-to-run or independently verified protocol. LabFlow never executes it.</aside>
+<h3>Featured protocols</h3>
+<div class="lf-fields lf-featured">
+<article class="lf-card"><span class="tag">Flex · API 2.18 fixture</span><h4>Pierce BCA Protein Assay</h4><p>The supplied copy is Flex-only. A matching upstream file has not been confirmed.</p><div class="lf-actions"><button class="button button-outline" data-lf-slug="bca_protein_assay">Find source</button><a href="https://library.opentrons.com/p/bca_protein_assay" target="_blank" rel="noopener">Library page ↗</a></div></article>
+<article class="lf-card"><span class="tag">OT-2 · API 2.13 template</span><h4>Luciferase Reporter Assay · Treatment</h4><p>Repository source uses a parameter helper that may be supplied by the Library download.</p><div class="lf-actions"><button class="button button-outline" data-lf-slug="sci-lucif-assay3">Load source</button><a href="https://library.opentrons.com/p/sci-lucif-assay3" target="_blank" rel="noopener">Library page ↗</a></div></article>
+<article class="lf-card"><span class="tag">Upstream match unconfirmed</span><h4>A549 Transient Transfection · Protocol 2</h4><p>Try the repository lookup, or get the published download and open it in Inspect Python.</p><div class="lf-actions"><button class="button button-outline" data-lf-slug="transient_transfection_of_A549cells_Protocol_2">Find source</button><a href="https://library.opentrons.com/p/transient_transfection_of_A549cells_Protocol_2" target="_blank" rel="noopener">Library page ↗</a></div></article>
+</div>
+<section class="lf-card"><h3>Find a protocol on develop</h3>
+<form id="lfFetchForm" class="lf-actions"><label>Protocol slug, Library link, or upstream Python file URL<input id="lfQuery" required placeholder="e.g. sci-lucif-assay3" spellcheck="false" autocapitalize="off"></label><button class="button button-outline" type="submit">Find source</button></form>
+<div class="lf-actions"><button class="button button-outline" id="lfBrowse" type="button">Load repository catalogue</button><button class="button button-outline" id="lfLocal" type="button">Inspect a local file</button></div>
+<div id="lfCatalogue" hidden><label>Filter repository folders<input id="lfFilter" type="search" placeholder="Search by protocol name or slug"></label><p id="lfCount" role="status"></p><div id="lfResults" class="lf-results"></div></div>
+<p id="lfLibraryStatus" role="status" aria-live="polite"></p><div id="lfFiles" class="lf-actions" hidden><label>Choose a Python file<select id="lfFile"></select></label><button class="button button-outline" id="lfLoadFile" type="button">Load selected file</button></div>
+<div id="lfSource" hidden><h4 id="lfSourceTitle"></h4><p id="lfCompatibility"></p><div class="lf-actions"><button class="button button-outline" id="lfOpenSource" type="button">Open in Inspect Python</button><button class="button button-outline" id="lfDownload" type="button">Download source .py</button><a id="lfUpstream" target="_blank" rel="noopener">View upstream file ↗</a></div></div>
+</section>
+<aside class="lf-note"><strong>To test or adapt:</strong> Inspect Python gives a static preview for supported OT-2 code. Review warnings, edit a copy, then analyze it in the Opentrons App for the declared robot and API. Check the real deck before any run. Flex files are source-only in LabFlow.</aside>
+</div>
+    </section>
     <section class="panel instrument-gallery-panel" id="instrumentGalleryPanel" aria-labelledby="instrumentGalleryTitle">
       <div class="panel-header instrument-gallery-head">
         <div><span class="panel-kicker">01 · HARDWARE CONFIGURATOR</span><h2 id="instrumentGalleryTitle">Instrument &amp; module gallery</h2><p>Mount pipettes; place labware, tip racks, and compatible modules in deck slots. Move a placed item to reposition it, or drop it in the recycle bin to remove it from this layout.</p></div>
