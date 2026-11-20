@@ -6,13 +6,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#05070d">
   <meta name="description" content="LifeFabs OT-2 protocol builder, code inspection and coordinate visualisation prototype.">
-  <title>OT-2 Protocol Lab — LifeFabs Fieldnotes</title>
+  <title>OT-2 Protocol Lab — Lifefabs LabFlow</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="styles-theme.css">
   <link rel="stylesheet" href="styles-instrument-gallery.css">
   <link rel="stylesheet" href="styles-ui-clarity.css">
   <link rel="stylesheet" href="styles-composer.css">
   <link rel="stylesheet" href="styles-visual-flow.css">
+  <link rel="stylesheet" href="labflow-phase1.css">
+  <script src="js/labflow-geometry.js" defer></script>
+  <script src="js/labflow-phase1.js" defer></script>
   <script src="js/theme.js" defer></script>
   <script src="js/tool-guide.js" defer></script>
   <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
@@ -21,7 +24,7 @@
 </head>
 <body class="lab-body">
   <header class="site-header lab-header">
-    <a class="brand" href="index.html"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><span><strong>LifeFabs</strong><small>FIELDNOTES / HYBRID LAB</small></span></a>
+    <a class="brand" href="index.html"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><span><strong>Lifefabs LabFlow</strong><small>LABFLOW / HYBRID LAB</small></span></a>
     <nav class="top-nav" aria-label="Main navigation"><a href="index.html">Home</a><a class="active" href="ot2.html">OT-2 protocol lab</a><a href="food-dyes.html">Food-dye simulation</a></nav>
     <a class="header-link" href="https://docs.opentrons.com/" target="_blank" rel="noreferrer">Official documentation ↗</a>
       <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch to bright theme" aria-pressed="false"><span class="theme-toggle-icon" aria-hidden="true">☼</span><span class="theme-toggle-label">Bright mode</span></button>
@@ -35,7 +38,11 @@
   <div class="workbench-tabs" role="tablist" aria-label="Protocol work modes">
     <button id="modeBuild" class="active" role="tab" aria-selected="true" aria-controls="builderMode">01 Build a protocol</button>
     <button id="modeInspect" role="tab" aria-selected="false" aria-controls="inspectMode">02 Inspect Python <span>upload / paste</span></button>
+    <button id="lfDevicesTab" type="button" role="tab" aria-selected="false" aria-controls="lfStudio">03 Custom Devices</button>
+    <button id="lfLibraryTab" type="button" role="tab" aria-selected="false" aria-controls="lfLibrary">04 Protocol Library</button>
   </div>
+  <section id="lfStudio" class="panel lf-panel" role="tabpanel" aria-labelledby="lfDevicesTab" hidden></section>
+  <section id="lfLibrary" class="panel lf-panel" role="tabpanel" aria-labelledby="lfLibraryTab" hidden></section>
 
   <main class="lab-main">
     <section class="panel instrument-gallery-panel" id="instrumentGalleryPanel" aria-labelledby="instrumentGalleryTitle">
@@ -282,7 +289,7 @@
     <div class="warning-box" style="margin:22px 0 0"><strong>Execution safety gate</strong><p>This is an educational protocol builder and visualiser, not a robot controller. Inspect the generated Python, validate the labware definitions and pipette/tips on the actual OT-2, run official protocol analysis/simulation for the intended software version, confirm current robot calibration, and dry-run safely before using expensive samples or reagents. Never rely on a browser visualization alone to rule out collisions.</p></div>
   </main>
 
-  <footer class="site-footer workbench-footer"><div class="footer-brand"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><strong>LifeFabs Fieldnotes</strong></div><p>Prototype built from the supplied OT-2 Quick Start Guide, STL model and selected Opentrons repository excerpts.</p><div class="footer-links"><a href="assets/ot2-quick-start-guide.pdf" target="_blank">Quick Start PDF ↗</a><a href="https://github.com/Opentrons/opentrons" target="_blank" rel="noreferrer">Opentrons source ↗</a><a href="index.html">Home ↗</a></div></footer>
+  <footer class="site-footer workbench-footer"><div class="footer-brand"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><strong>Lifefabs LabFlow</strong></div><p>Prototype built from the supplied OT-2 Quick Start Guide, STL model and selected Opentrons repository excerpts.</p><div class="footer-links"><a href="assets/ot2-quick-start-guide.pdf" target="_blank">Quick Start PDF ↗</a><a href="https://github.com/Opentrons/opentrons" target="_blank" rel="noreferrer">Opentrons source ↗</a><a href="index.html">Home ↗</a></div></footer>
   <script src="js/instrument-gallery.js" defer></script>
   <script src="js/visual-composer-v4.js" defer></script>
 </body>

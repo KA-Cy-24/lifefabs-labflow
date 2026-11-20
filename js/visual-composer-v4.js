@@ -78,7 +78,7 @@
   const compatibleRack = (mount, id) => !!findLab(id) && def(findLab(id).load_name)?.tipRack && findLab(id).load_name.includes(tipRequirement(findPipette(mount)?.api_load_name||''));
   const racks = () => labware.filter(l => def(l.load_name)?.tipRack);
   const plates = () => labware.filter(l => !def(l.load_name)?.tipRack);
-  const wellNames = l => { const g=def(l?.load_name)?.wellGeometry; if (!g) return wells; return Array.from({length:g.columns||12},(_,c)=>Array.from({length:g.rows||8},(_,r)=>`${String.fromCharCode(65+r)}${c+1}`)).flat(); };
+  const wellNames = l => { const d=def(l?.load_name); if(d?.wellNames)return d.wellNames; const g=d?.wellGeometry; if (!g) return wells; return Array.from({length:g.columns||12},(_,c)=>Array.from({length:g.rows||8},(_,r)=>`${String.fromCharCode(65+r)}${c+1}`)).flat(); };
   const validWell = (l,w) => wellNames(l).includes(w);
   const moduleByUid = uid => hardware().modules.find(m=>m.uid===uid);
   const parentModule = l => l?.moduleUid ? moduleByUid(l.moduleUid) : null;
@@ -134,25 +134,15 @@
     $('hwLabwareFeedback').dataset.error=String(bad);
   }
   function importOfficialDefinition(raw) {
-    if(!raw||!raw.parameters||!raw.wells||!raw.ordering||!raw.dimensions)throw Error('Expected an Opentrons labware definition JSON (with wells, ordering, dimensions, parameters).');
-    const name=raw.parameters.loadName,ordering=raw.ordering,grid=ordering.flat();
-    if(!name||!grid.length||!grid.every(w=>raw.wells[w]))throw Error('Missing official load name or well details.');
-    const rowCount=ordering[0].length,colCount=ordering.length;
-    if(!ordering.every(c=>c.length===rowCount)||rowCount>16||colCount>48)throw Error('Only rectangular regular-grid well layouts are supported in this preview.');
-    const start=raw.wells[ordering[0][0]],right=raw.wells[ordering[1]?.[0]]||start,down=raw.wells[ordering[0][1]]||start;
-    const dx=right.x-start.x,dy=start.y-down.y;
-    if((colCount>1&&dx<=0)||(rowCount>1&&dy<=0))throw Error('Irregular orientation/layout cannot be visualized safely.');
-    const tol=0.08;
-    for(let c=0;c<colCount;c++)for(let r=0;r<rowCount;r++){
-      const w=raw.wells[ordering[c][r]];
-      if(Math.abs(w.x-(start.x+c*dx))>tol||Math.abs(w.y-(start.y-r*dy))>tol)throw Error('Nonuniform well grid: cannot produce accurate slot geometry.');
+    const d=window.LabFlowGeometry.normalize(raw), prior=def(d.loadName);
+    if(prior && (!prior.custom || labware.some(x=>x.load_name===d.loadName))) {
+      throw Error('Load name is already in use. Remove the prior placement or choose a distinct load name for this revision.');
     }
-    const d={loadName:name,displayName:raw.metadata?.displayName||name,brand:raw.brand?.brand||'Custom official definition',definitionUrl:'User-provided JSON',dimensions:raw.dimensions,custom:true,
-      tipRack:!!raw.parameters.isTiprack,wellGeometry:{rows:rowCount,columns:colCount,xFirst:start.x,yFirst:start.y,zBottom:start.z,depth:start.depth,xPitch:dx,yPitch:dy,diameter:start.diameter||null,length:start.length||null,width:start.width||null,capacityUL:start.totalLiquidVolume||0}};
-    labwareDefinitions=labwareDefinitions.filter(x=>x.loadName!==name);labwareDefinitions.push(d);
-    try{localStorage.setItem(CUSTOM_DEFS,JSON.stringify(labwareDefinitions.filter(x=>x.custom)));}catch(e){console.warn(e)}
+    const next=labwareDefinitions.filter(x=>x.loadName!==d.loadName).concat(d);
+    localStorage.setItem(CUSTOM_DEFS,JSON.stringify(next.filter(x=>x.custom)));
+    labwareDefinitions=next;
     window.lifefabsCore?.registerLabwareDefinition(d);
-    renderHardware();tellHardware(`Definition ${name} imported. Place it in Section 1 to synchronize map and Python.`);
+    renderHardware();tellHardware(`Definition ${d.loadName} imported. Place it in Section 1 to synchronize map and Python.`);
   }
   function renderHardware() {
     const free=validSlots().filter(slot=>!labware.some(x=>x.slot===slot));
@@ -198,7 +188,11 @@
   const sel=(key,label,items,value) => `<label class="flow-field">${label}<select data-block-key="${key}" ${items.length?'':'disabled'}>${options(items,value)}</select></label>`;
   const nfield=(key,label,val,min,max,step=1,unit='')=>`<label class="flow-field">${label}<div class="flow-input-unit"><input type="number" data-block-key="${key}" value="${escape(val)}" min="${min}" max="${max}" step="${step}"><span>${unit}</span></div></label>`;
   const txt=(key,label,value)=>`<label class="flow-field">${label}<textarea rows="3" data-block-key="${key}">${escape(value)}</textarea></label>`;
-  const wellSelect=(key,label,value,channels=1)=>`<label class="flow-field">${label}<select data-block-key="${key}">${(channels===8?columnWells:wells).map(w=>`<option value="${w}" ${w===value?'selected':''}>${w}</option>`).join('')}</select></label>`;
+  const wellSelect=(key,label,value,channels,id)=>{
+    const names=wellNames(findLab(id)).filter(w=>channels!==8||/^A[1-9][0-9]*$/.test(w));
+    const missing=!names.includes(value);
+    return `<label class="flow-field">${label}<select data-block-key="${key}">${missing?'<option selected disabled value="">Choose a valid well</option>':''}${names.map(w=>`<option value="${escape(w)}" ${w===value?'selected':''}>${escape(w)}</option>`).join('')}</select></label>`;
+  };
   function blockCaption(b) {
     const source=findLab(b.source)?.label||'Missing source',dest=findLab(b.destination)?.label||'Missing destination',target=findLab(b.target)?.label||'Missing labware';
     if(['distribute','consolidate'].includes(b.type))return `${b.volume} µL per well · ${source} → ${dest} · ${b.wellList||'choose wells'}`;
@@ -247,16 +241,16 @@
       html+='<p class="flow-field-note">Standard operations generate only documented module-context calls. Custom devices generate a pause for a trained operator; no external-device Python driver is assumed. Real hardware compatibility and safe movement must be checked separately.</p>';
     }
     if(['transfer','distribute','consolidate'].includes(b.type)){
-      html+=sel('source','Source labware',plates(),b.source)+wellSelect('sourceWell','Source well / column',b.sourceWell,channels);
-      html+=sel('destination','Destination labware',plates(),b.destination)+wellSelect('destWell','Destination well / column',b.destWell,channels);
-      html+=sel('rack','Tip rack (must match pipette)',racks(),b.rack)+wellSelect('tipWell','New tip / column',b.tipWell,channels);
+      html+=sel('source','Source labware',plates(),b.source)+wellSelect('sourceWell','Source well / column',b.sourceWell,channels,b.source);
+      html+=sel('destination','Destination labware',plates(),b.destination)+wellSelect('destWell','Destination well / column',b.destWell,channels,b.destination);
+      html+=sel('rack','Tip rack (must match pipette)',racks(),b.rack)+wellSelect('tipWell','New tip / column',b.tipWell,channels,b.rack);
       html+=nfield('volume','Volume per destination / source',b.volume,0.1,1000,0.5,'µL');
       if(b.type!=='transfer')html+=`<label class="flow-field">${b.type==='distribute'?'Destination':'Source'} wells (comma separated; cherry-pick any wells)<input type="text" data-block-key="wellList" value="${escape(b.wellList||'A1')}" placeholder="A1, C3, H12"></label><p class="flow-field-note">Uses Opentrons ${b.type}() with the selected well list. The API chooses the exact aspiration/refill/tip movements; viewer targets are illustrative, not a full command expansion.</p>`;
       if(b.type==='transfer')html+=`<label class="flow-field">Touch tip after aspirate/dispense <select data-block-key="touchTip"><option value="false" ${!b.touchTip?'selected':''}>No</option><option value="true" ${b.touchTip?'selected':''}>Yes</option></select></label>`;
     } else if(b.type==='pickup'){
-      html+=sel('rack','Tip rack',racks(),b.rack)+wellSelect('tipWell','Tip well / column',b.tipWell,channels);
+      html+=sel('rack','Tip rack',racks(),b.rack)+wellSelect('tipWell','Tip well / column',b.tipWell,channels,b.rack);
     } else if(['aspirate','dispense','mix','move','blowout','touch'].includes(b.type)){
-      html+=sel('target','Placed labware',plates(),b.target)+wellSelect('well','Well / column',b.well,channels);
+      html+=sel('target','Placed labware',plates(),b.target)+wellSelect('well','Well / column',b.well,channels,b.target);
       if(['aspirate','dispense','mix'].includes(b.type))html+=nfield('volume','Volume',b.volume,0.1,1000,0.5,'µL');
       if(b.type==='mix')html+=nfield('repetitions','Cycles',b.repetitions,1,100,1,'times');
     } else if(b.type==='airgap') html+=nfield('volume','Air volume',b.volume,0.1,1000,0.5,'µL');
@@ -315,11 +309,18 @@
       const v=`labware_${i+1}`;labNames[l.id]=v;
       const m=l.moduleUid&&moduleByUid(l.moduleUid);
       if(l.moduleUid&&!m)errors.push(`${l.label}: its parent module was removed. Reassign it in Section 1.`);
+      const d=def(l.load_name);
+      if(d?.custom && !d.officialDefinition)errors.push(`${l.label}: re-import the original definition; legacy grid-only data cannot certify exact geometry. Remove the placed copy before replacing the definition.`);
+      if(d?.officialDefinition && m)errors.push(`${l.label}: imported definitions are supported on bare deck slots only in this release.`);
       if(m&&m.custom)errors.push(`${l.label}: custom modules cannot be treated as an Opentrons module labware parent.`);
       if(m){
         if(!moduleNames[m.uid])errors.push(`${l.label}: parent ${m.name} has no supported module context.`);
         lines.push(`    ${v} = ${moduleNames[m.uid]||'MISSING_MODULE'}.load_labware(${JSON.stringify(l.load_name)})  # ${l.label} on ${m.name}`);
         warnings.push(`${l.label}: verify the selected labware fits ${m.name} and meets latch/adapter requirements; no adapter compatibility engine is implemented.`);
+      }else if(d?.officialDefinition){
+        const raw=d.officialDefinition;
+        lines.push(`    ${v} = protocol.load_labware(${JSON.stringify(raw.parameters.loadName)}, ${JSON.stringify(String(l.slot))}, namespace=${JSON.stringify(raw.namespace)}, version=${raw.version})`);
+        warnings.push(`${l.label}: import this exact JSON (namespace ${raw.namespace}, version ${raw.version}) into the Opentrons App before analysis; verify physical clearance.`);
       }else lines.push(`    ${v} = protocol.load_labware(${JSON.stringify(l.load_name)}, ${JSON.stringify(String(l.slot))})  # ${l.label}`);
     });
     hw.pipettes.forEach(p=>{
@@ -340,13 +341,15 @@
       steps.push({kind:type.replace('transfer-',''),label:byType[b.type]?.label+ (volume?` · ${volume} µL`:''),note:note||`${lab?.label||'Hardware'} · ${well||'—'} · nominal requested tip endpoint; not a collision-safe motion.`,slot:lab?.slot,labwareName:lab?.load_name,well,pipetteModel:findPipette(b.pipette)?.api_load_name,channels:pipInfo(b.pipette)?.channels||1,point,volume,transferIndex:steps.length+1});
     };
     const address=(l,well,b)=>`${labNames[l?.id]||'UNDEFINED_LABWARE'}[${JSON.stringify(well)}]${b.reference==='center'?'.center()':b.reference==='top'?`.top(z=${pyNum(b.z)})`:`.bottom(z=${pyNum(b.z)})`}`;
-    const wellOkay=(p,w,lab)=> validWell(lab,w) && (pipInfo(p)?.channels!==8 || /^A[1-9][0-9]*$/.test(w));
+    const wellOkay=(p,w,lab)=> validWell(lab,w) && (pipInfo(p)?.channels!==8 || (!def(lab?.load_name)?.custom && /^A[1-9][0-9]*$/.test(w)));
     const checkWell=(p,w,l,context)=>{if(!l)errors.push(`${context}: select a placed labware item.`);if(!wellOkay(p,w,l))errors.push(`${context}: well ${w} is invalid for the selected pipette.`);};
-    const checkTarget=(b,l,v,context)=>{
-      const d=def(l?.load_name),depth=num(d?.wellGeometry?.depth),capacity=num(d?.wellGeometry?.capacityUL);
+    const checkTarget=(b,l,v,context,well)=>{
+      const d=def(l?.load_name), exact=d?.wellMap?.[well];
+      const depth=num(exact?.depth ?? d?.wellGeometry?.depth),capacity=num(exact?.totalLiquidVolume ?? d?.wellGeometry?.capacityUL);
       if(!d)return;
       if(Number.isFinite(v)&&v>0&&Number.isFinite(capacity)&&v>capacity)errors.push(`${context}: ${v} µL exceeds the labware's ${capacity} µL nominal well capacity.`);
       if(b.reference==='bottom'&&(!Number.isFinite(num(b.z))||num(b.z)<0.5||Number.isFinite(depth)&&num(b.z)>=depth))errors.push(`${context}: bottom clearance must be ≥0.5 mm and below the defined well depth (${depth} mm).`);
+      if(d.custom&&b.reference==='top'&&Number.isFinite(depth)&&depth+num(b.z)<0.5)errors.push(`${context}: top offset would put the target below the 0.5 mm bottom margin.`);
       if(b.reference==='top'&&(!Number.isFinite(num(b.z))||num(b.z)<-10||num(b.z)>10))errors.push(`${context}: top-relative Z offset must be between -10 and +10 mm.`);
     };
     const useTip=(b,blk)=>{
@@ -403,6 +406,7 @@
         event('module',b,null,null,0,`${m?.name||'Module'}: ${b.moduleAction}; slot ${m?.location||'?'}. Module behavior is not physically simulated.`);
       } else if(b.type==='distribute'||b.type==='consolidate'){
         const src=findLab(b.source),dst=findLab(b.destination),multi=listWells(b.wellList);
+        if([src,dst].some(x=>def(x?.load_name)?.custom))errors.push(`${name}: use explicit single-channel operations for custom labware rather than implicit complex transfers.`);
         if(!multi.length||multi.length>96||new Set(multi).size!==multi.length)errors.push(`${name}: choose 1–96 distinct wells.`);
         if(l?.tip)errors.push(`${name}: a tip is already attached; finish its lifecycle first.`);
         const single=b.type==='distribute'?src:dst, many=b.type==='distribute'?dst:src;
@@ -420,8 +424,9 @@
       } else if(b.type==='transfer'){
         const src=findLab(b.source),dst=findLab(b.destination);
         checkWell(b.pipette,b.sourceWell,src,`${name} source`);checkWell(b.pipette,b.destWell,dst,`${name} destination`);
-        checkTarget(b,src,vol,`${name} source`);checkTarget(b,dst,vol,`${name} destination`);
+        checkTarget(b,src,vol,`${name} source`,b.sourceWell);checkTarget(b,dst,vol,`${name} destination`,b.destWell);
         if(src&&def(src.load_name)?.tipRack||dst&&def(dst.load_name)?.tipRack)errors.push(`${name}: source/destination must be actual wells, not tip racks.`);
+        if((b.touchTip===true||b.touchTip==='true') && [src,dst].some(x=>def(x?.load_name)?.custom))errors.push(`${name}: disable touch tip for custom labware.`);
         if(l?.tip)errors.push(`${name}: a tip is already attached; drop it before a self-contained transfer.`);
         const tip=useTip(b,name);
         lines.push(`    ${pip}.pick_up_tip(${tip})`,`    ${pip}.aspirate(${pyNum(vol)}, ${address(src,b.sourceWell,b)})`);
@@ -440,8 +445,9 @@
         lines.push(`    ${pip}.drop_tip()`);if(l){l.tip=false;l.ul=0;}event('drop',b,null,null,0,'Tip to fixed trash; exact location is resolved by Opentrons.');
       } else if(['aspirate','dispense','mix','move','blowout','touch'].includes(b.type)){
         const target=findLab(b.target);
+        if(b.type==='touch' && def(target?.load_name)?.custom)errors.push(`${name}: custom well rim clearance is unverified; touch tip is unavailable.`);
         checkWell(b.pipette,b.well,target,name);
-        if(b.type!=='touch')checkTarget(b,target,hasVolume?vol:0,name);
+        if(b.type!=='touch')checkTarget(b,target,hasVolume?vol:0,name,b.well);
         if(target&&def(target.load_name)?.tipRack)errors.push(`${name}: a tip rack is not liquid-handling labware.`);
         if(l&&!l.tip)errors.push(`${name}: pick up a tip first.`);
         const pos=address(target,b.well,b);
@@ -578,7 +584,7 @@
       const res=await fetch('data/labware-presets.json',{cache:'no-cache'});if(!res.ok)throw Error('Could not fetch labware presets');
       labwareDefinitions=(await res.json()).definitions||[];
       try{const extras=JSON.parse(localStorage.getItem(CUSTOM_DEFS)||'[]');if(Array.isArray(extras))extras.filter(x=>x.custom&&x.loadName&&x.wellGeometry).forEach(x=>{if(!def(x.loadName))labwareDefinitions.push(x);window.lifefabsCore?.registerLabwareDefinition(x);});}catch(e){console.warn('No custom labware restored',e)}
-      restore();attach();ready=true;
+      restore();attach();ready=true;window.labflowRegisterLabware=importOfficialDefinition;
       if(window.lifefabsHardwareLayout)gallery=window.lifefabsHardwareLayout;
       window.lifefabsV4Active=true;
       publishLabware();renderHardware();renderBlocks();selectedId=blocks[0]?.id||null;renderInspector();

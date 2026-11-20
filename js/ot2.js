@@ -662,7 +662,7 @@ function getSlotOrigin(slot) {
 
 function getWell(def, address) {
   if (!def || !address) return null
-  if (def.wellMap && def.wellMap[address]) return def.wellMap[address]
+  if (def.wellMap) return Object.hasOwn(def.wellMap,address) ? def.wellMap[address] : null
   const geo = def.wellGeometry
   if (!geo) return null
   const match = /^([A-H])([1-9]|1[0-2])$/.exec(address)
@@ -1118,9 +1118,17 @@ function renderDeck2D() {
     pieces.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="${role ? 2 : 1}"/>`)
     pieces.push(`<text x="${x + 8}" y="${y + 15}" fill="${COLORS.ink}" font-size="11" font-weight="700" font-family="monospace">${slot}</text>`)
     if (role) {
-      pieces.push(`<text x="${x + w - 8}" y="${y + 15}" text-anchor="end" fill="${stroke}" font-size="9" font-weight="700" font-family="monospace">${role.name}</text>`)
+      pieces.push(`<text x="${x + w - 8}" y="${y + 15}" text-anchor="end" fill="${stroke}" font-size="9" font-weight="700" font-family="monospace">${escapeHtml(role.name)}</text>`)
       const def = getDefinition(role.loadName)
-      if (def && def.wellGeometry) {
+      if (def?.wellMap) {
+        for (const [name, well] of Object.entries(def.wellMap)) {
+          const wx=sx(xBase+well.x), wy=sy(yBase+well.y);
+          if (well.shape==='rectangular') {
+            const ww=well.xDimension*scaleX, hh=well.yDimension*scaleY;
+            pieces.push(`<rect x="${wx-ww/2}" y="${wy-hh/2}" width="${ww}" height="${hh}" fill="${stroke}" opacity=".55"><title>${escapeHtml(name)}</title></rect>`);
+          } else pieces.push(`<ellipse cx="${wx}" cy="${wy}" rx="${well.diameter*scaleX/2}" ry="${well.diameter*scaleY/2}" fill="${stroke}" opacity=".55"><title>${escapeHtml(name)}</title></ellipse>`);
+        }
+      } else if (def && def.wellGeometry) {
         for (let row = 0; row < (def.wellGeometry.rows || 8); row++) {
           for (let col = 0; col < (def.wellGeometry.columns || 12); col++) {
             const wx = sx(xBase + def.wellGeometry.xFirst + col * def.wellGeometry.xPitch)
@@ -1228,8 +1236,13 @@ function renderDeck3D() {
     pieces.push(`<polygon points="${poly(right)}" fill="${role ? '#b5cfc4' : '#cbd7ce'}" stroke="${edge}" stroke-width=".7"/>`)
     pieces.push(`<polygon points="${poly(top)}" fill="${fill}" stroke="${edge}" stroke-width="${role ? 1.6 : .7}"/>`)
     const labelPos = p(x0 + 9, y0 + 8, height + 1)
-    pieces.push(`<text x="${labelPos.x}" y="${labelPos.y}" fill="${COLORS.ink}" font-size="9" font-family="monospace" font-weight="700">${slot}${role ? ` / ${role.name}` : ''}</text>`)
-    if (def?.wellGeometry) {
+    pieces.push(`<text x="${labelPos.x}" y="${labelPos.y}" fill="${COLORS.ink}" font-size="9" font-family="monospace" font-weight="700">${slot}${role ? ` / ${escapeHtml(role.name)}` : ''}</text>`)
+    if (def?.wellMap) {
+      for (const [name, well] of Object.entries(def.wellMap)) {
+        const wp=p(x0+well.x,y0+well.y,well.z+well.depth);
+        pieces.push(`<circle cx="${wp.x}" cy="${wp.y}" r="2.4" fill="${edge}" opacity=".8"><title>${escapeHtml(name)}</title></circle>`);
+      }
+    } else if (def?.wellGeometry) {
       for (let row = 0; row < (def.wellGeometry.rows || 8); row++) for (let col = 0; col < (def.wellGeometry.columns || 12); col++) {
         const wp = p(x0 + def.wellGeometry.xFirst + col * def.wellGeometry.xPitch, y0 + def.wellGeometry.yFirst - row * def.wellGeometry.yPitch, height + 0.4)
         pieces.push(`<circle cx="${wp.x}" cy="${wp.y}" r="1.15" fill="${edge}" opacity=".7"/>`)
@@ -1637,7 +1650,8 @@ function analyseScript(code) {
 
 function analyseCurrentCode() {
   const code = $('codeEditor').value
-  const result = analyseScript(code)
+  const flex = /["']robotType["']\s*:\s*["']Flex["']/.test(code)
+  const result = flex ? {steps:[],labwares:new Map(),pipettes:new Map(),diagnostics:[{level:'error',text:'Flex protocol: source inspection only. The OT-2 deck, simulation and recovery are not available for this file.'}]} : analyseScript(code)
   currentSteps = result.steps
   activeStepIndex = 0
   viewerSource = 'inspect'
@@ -1677,6 +1691,13 @@ function switchMode(mode) {
   $('modeBuild').setAttribute('aria-selected', String(mode === 'build'))
   $('modeInspect').setAttribute('aria-selected', String(mode === 'inspect'))
   $('builderMode').classList.toggle('hidden', mode !== 'build')
+  for (const [key, tab, panel] of [['devices','lfDevicesTab','lfStudio'],['library','lfLibraryTab','lfLibrary']]) {
+    const selected=mode===key;
+    $(tab).setAttribute('aria-selected',String(selected));
+    $(tab).classList.toggle('active',selected);
+    $(panel).hidden=!selected;
+  }
+  for (const id of ['codeEditor','analysisStatus']) $(id).closest('section')?.classList.toggle('hidden',!['build','inspect'].includes(mode));
   $('inspectIntake').classList.toggle('hidden', mode !== 'inspect')
   $('codeTitle').textContent = mode === 'build' ? 'Generated OT-2 Python protocol' : 'Uploaded / edited Python protocol'
   $('codeState').textContent = mode === 'build' ? 'Generated template · editable' : 'Static inspection only'
@@ -1686,8 +1707,7 @@ function switchMode(mode) {
     previewStale = true
     updateProtocolOverview()
   } else {
-    // Returning to the builder re-generates the preview from the current visible form.
-    buildProtocol()
+    if (mode === 'build') buildProtocol()
   }
 }
 function downloadFile(filename, text, type = 'text/plain;charset=utf-8') {
@@ -1745,6 +1765,8 @@ function attachEvents() {
   attachSequenceEvents()
   $('modeBuild').addEventListener('click', () => switchMode('build'))
   $('modeInspect').addEventListener('click', () => switchMode('inspect'))
+  $('lfDevicesTab').addEventListener('click', () => switchMode('devices'))
+  $('lfLibraryTab').addEventListener('click', () => switchMode('library'))
   $('pipetteModel').addEventListener('change', () => populateWellSelectors(true))
   $('targetMode').addEventListener('change', () => { $('wellClearance').disabled = $('targetMode').value !== 'bottom'; $('wellClearanceHelp').textContent = $('targetMode').value === 'bottom' ? 'Height above the well bottom; 1–10 mm in this builder.' : 'Only used when the target reference is well bottom.' })
   $('generateBtn').addEventListener('click', buildProtocol)
