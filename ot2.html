@@ -79,7 +79,14 @@
 <div class="lf-actions"><button class="button button-outline" id="lfBrowse" type="button">Load repository catalogue</button><button class="button button-outline" id="lfLocal" type="button">Inspect a local file</button></div>
 <div id="lfCatalogue" hidden><label>Filter repository folders<input id="lfFilter" type="search" placeholder="Search by protocol name or slug"></label><p id="lfCount" role="status"></p><div id="lfResults" class="lf-results"></div></div>
 <p id="lfLibraryStatus" role="status" aria-live="polite"></p><div id="lfFiles" class="lf-actions" hidden><label>Choose a Python file<select id="lfFile"></select></label><button class="button button-outline" id="lfLoadFile" type="button">Load selected file</button></div>
-<div id="lfSource" hidden><h4 id="lfSourceTitle"></h4><p id="lfCompatibility"></p>        <div>
+<div id="lfSource" hidden><h4 id="lfSourceTitle"></h4><p id="lfCompatibility"></p><details id="lfNotes" hidden>
+  <summary>Protocol documentation</summary>
+  <label for="lfNotesFile">Markdown file</label>
+  <select id="lfNotesFile"></select>
+  <a id="lfNotesUpstream" class="button button-outline button-small" target="_blank" rel="noopener noreferrer">Open on GitHub</a>
+  <article id="lfNotesBody" class="lf-notes-body" aria-label="Rendered protocol documentation"></article>
+</details>
+        <div>
           <p role="status" id="lfCompanionStatus"></p>
           <div class="form-actions" id="lfCompanionFiles"></div>
           <div class="lf-fields" id="lfCompanionInputs"></div>
@@ -351,5 +358,7 @@
   <footer class="site-footer workbench-footer"><div class="footer-brand"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><strong>Lifefabs LabFlow</strong></div><p>Prototype built from the supplied OT-2 Quick Start Guide, STL model and selected Opentrons repository excerpts.</p><div class="footer-links"><a href="assets/ot2-quick-start-guide.pdf" target="_blank">Quick Start PDF ↗</a><a href="https://github.com/Opentrons/opentrons" target="_blank" rel="noreferrer">Opentrons source ↗</a><a href="index.html">Home ↗</a></div></footer>
   <script src="js/instrument-gallery.js" defer></script>
   <script src="js/visual-composer-v4.js" defer></script>
+<script defer src="https://cdn.jsdelivr.net/npm/marked@15.0.12/lib/marked.umd.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/dompurify@3.4.2/dist/purify.min.js"></script>
 </body>
 </html>

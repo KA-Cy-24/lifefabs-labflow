@@ -75,3 +75,10 @@ export async function inspectPython(source, bundled, report, input) {
   }
   return {model,definitions};
 }
+
+// Use the same isolated AST worker as recovery, without executing the template.
+export async function bindLibrarySource(source,values) {
+  const result=await analyse(source,{}, {}, {bind:values});
+  if(result.ineligible)throw Error(result.ineligible);
+  return result.source;
+}

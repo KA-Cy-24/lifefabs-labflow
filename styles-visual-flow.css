@@ -74,3 +74,14 @@ html[data-theme="light"] .flow-canvas{background-color:#e9f1fc}html[data-theme="
 /* Informational blocks use the native palette and canvas typography. */
 .flow-palette-block.flow-comment, .flow-block.flow-comment { --block-color:#4b5563; color:#fff; }
 #lfRecovery input[type="range"] { width:100%; max-width:28rem; }
+
+/* Match the native block shape and type, including inspection blocks. */
+#flowPalette .flow-comment, #visualFlowPanel .flow-block.flow-comment {
+  --block-color:#52565b; background-color:var(--block-color); color:white;
+}
+#lfNotes {margin-block:1em;padding:1em;border:1px solid var(--border);border-radius:12px}
+#lfNotes summary {cursor:pointer;font-weight:700;margin-bottom:.7em}
+.lf-notes-body {line-height:1.6;overflow:auto;overflow-wrap:anywhere}
+.lf-notes-body img {max-width:100%;height:auto}
+.lf-notes-body pre {overflow:auto;white-space:pre;padding:.9em}
+.lf-notes-body th,.lf-notes-body td {border:1px solid var(--border);padding:.35em .6em}

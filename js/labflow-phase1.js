@@ -91,42 +91,102 @@
   // Fetch only direct JSON siblings from the same allowed repository and ref.
   // Raw Python remains unchanged; companion files are data, never executable.
   const jsonFilename = /^(?!\.)[\w.-]{1,150}\.json$/i;
+  // Inventory the source folder only, not unrelated protocol directories.
+  // Keep metadata failures independent of the unchanged Python download.
   async function companions(q, listing) {
-    try {
-      const entries = listing || await json(`${root}/contents/protocols/${q.slug}?ref=${q.ref}`);
-      if (!Array.isArray(entries)) throw Error('No directory listing.');
-      const all = entries.filter(x=>x.type==='file' && jsonFilename.test(x.name));
-      all.sort((a,b)=>Number(b.name==='fields.json')-Number(a.name==='fields.json'));
-      const files = [], failures = all.slice(24).map(x=>x.name);
-      // Small batches avoid large bursts of requests for accessory files.
-      for (let i=0;i<Math.min(all.length,24);i+=4) {
-        await Promise.all(all.slice(i,Math.min(i+4,24)).map(async entry=>{
-          try {
-            if (entry.size>1_000_000) throw Error('File exceeds 1 MB.');
-            const path = `${q.ref}/protocols/${q.slug}/${encodeURIComponent(entry.name)}`;
-            const response = await request(`${raw}/${path}`);
-            if (!response.ok || Number(response.headers.get('content-length'))>1_000_000) throw Error('Unavailable or too large.');
-            const text = await response.text();
-            if (text.length>1_000_000) throw Error('File exceeds limit.');
-            files.push({name:entry.name, text, data:JSON.parse(text)});
-          } catch { failures.push(entry.name); }
-        }));
+    const base = `protocols/${q.slug}`;
+    const files = [], failures = [];
+    const urlFor = path => `${raw}/${q.ref}/${path.split('/').map(encodeURIComponent).join('/')}`;
+    const pendingDirs = [{path:base, entries:listing, depth:0}];
+    let visited = 0;
+    while (pendingDirs.length && visited++ < 20) {
+      const dir = pendingDirs.shift();
+      let entries;
+      try {
+        entries = dir.entries || await json(`${root}/contents/${dir.path.split('/').map(encodeURIComponent).join('/')}?ref=${q.ref}`);
+        if (!Array.isArray(entries)) throw Error('Directory unavailable');
+      } catch { failures.push(dir.path); continue; }
+      for (const entry of entries) {
+        if (typeof entry.name !== 'string' || !entry.name || /[\\/\x00-\x1f]/.test(entry.name) || ['.','..'].includes(entry.name)) continue;
+        const path = `${dir.path}/${entry.name}`;
+        if (entry.type === 'dir' && dir.depth < 4 && pendingDirs.length < 40) pendingDirs.push({path,depth:dir.depth+1});
+        else if (entry.type === 'dir') failures.push(path+' (directory limit)');
+        if (entry.type === 'file' && files.length < 150) files.push({name:entry.name, path, url:urlFor(path), size:entry.size});
+        else if (entry.type === 'file') failures.push(path+' (inventory limit)');
       }
-      return {files:files.sort((a,b)=>a.name.localeCompare(b.name)), failures};
-    } catch (error) { return {files:[],failures:[],error:error.message}; }
+    }
+    if (pendingDirs.length) failures.push('Additional directories (inventory limit)');
+    const inline = files.filter(x=>/\.(json|md|markdown)$/i.test(x.name));
+    inline.sort((a,b)=>Number(b.path===`${base}/fields.json`)-Number(a.path===`${base}/fields.json`));
+    for (let i=0;i<Math.min(inline.length,24);i+=4) await Promise.all(inline.slice(i,i+4).map(async file=>{
+      try {
+        if (file.size>1_000_000) throw Error('Too large');
+        const response=await request(file.url);
+        if (!response.ok || Number(response.headers.get('content-length'))>1_000_000) throw Error('Unavailable');
+        file.text=await response.text();
+        if(file.text.length>1_000_000){delete file.text;throw Error('Too large');}
+        if(/\.json$/i.test(file.name))file.data=JSON.parse(file.text);
+      } catch { failures.push(file.path+' (inline preview unavailable)'); }
+    }));
+    if(inline.length>24)failures.push('Additional JSON/Markdown files are on demand');
+    return {files,failures,base,ref:q.ref};
+  }
+
+  // Markdown is untrusted. Parse into a detached document, strip active markup,
+  // and resolve relative images against the same repo/ref, not the Pages site.
+  function renderNotes(file, ref, panel) {
+    panel.replaceChildren();
+    if (!file?.text) {panel.textContent='No inline Markdown available. Open the upstream file above.';return;}
+    if (!window.marked || !window.DOMPurify) {panel.textContent=file.text;return;}
+    const clean=window.DOMPurify.sanitize(window.marked.parse(file.text), {
+      RETURN_DOM_FRAGMENT:true, USE_PROFILES:{html:true},
+      FORBID_TAGS:['style','form','input','button','iframe','video','audio','source'],
+      FORBID_ATTR:['style','srcset','id','name']
+    });
+    for (const element of clean.querySelectorAll('a[href],img[src]')) {
+      const image=element.tagName==='IMG', attr=image?'src':'href', value=element.getAttribute(attr);
+      try {
+        if (!image && value.startsWith('#')) {
+          element.href=`https://github.com/Opentrons/Protocols/blob/${ref}/${file.path.split('/').map(encodeURIComponent).join('/')}${value}`;
+        } else {
+          const base=image?file.url:`https://github.com/Opentrons/Protocols/blob/${ref}/${file.path.split('/').map(encodeURIComponent).join('/')}`;
+          const target=new URL(value,base);
+          if(target.protocol!=='https:' || target.username || target.password) throw Error('Blocked URL');
+          element.setAttribute(attr,target.href);
+        }
+        if(image){element.loading='lazy';element.referrerPolicy='no-referrer';}
+        else {element.target='_blank';element.rel='noopener noreferrer';}
+      } catch {element.removeAttribute(attr);}
+    }
+    panel.append(clean);
+  }
+  function showPackage({files,base,ref}) {
+    const select=$('lfNotesFile'), notes=$('lfNotesBody'), link=$('lfNotesUpstream');
+    const markdown=files.filter(x=>/\.(md|markdown)$/i.test(x.name))
+      .sort((a,b)=>Number(/\/README\.md$/i.test(b.path))-Number(/\/README\.md$/i.test(a.path)));
+    $('lfNotes').hidden=!markdown.length;
+    select.replaceChildren(...markdown.map((f,i)=>new Option(f.path.slice(base.length+1),String(i))));
+    const refresh=()=>{
+      const file=markdown[Number(select.value)];
+      if(!file)return;
+      link.href=`https://github.com/Opentrons/Protocols/blob/${ref}/${file.path.split('/').map(encodeURIComponent).join('/')}`;
+      renderNotes(file,ref,notes);
+    };
+    select.onchange=refresh;refresh();
   }
   async function showWithCompanions(q, result, listing) {
-    tell('Checking for JSON files in the source directory…');
+    tell('Checking the source folder and its assets…');
     result.companions = await companions(q, listing);
     show(result);
     showCompanions(result.companions);
+    showPackage(result.companions);
   }
-  function showCompanions({files, failures, error}) {
+  function showCompanions({files, failures, error, base}) {
     $('lfCompanionStatus').textContent = error ? `Could not check companion JSON: ${error}` :
-      `${files.length} companion JSON file(s) loaded.${failures.length?' Unavailable, invalid or over the fetch limit: '+failures.join(', ')+'.':''}`;
+      `${files.length} source-folder file(s) listed; JSON and Markdown are previewed when available.${failures.length?' Unavailable, invalid or over the fetch limit: '+failures.join(', ')+'.':''}`;
     const links = $('lfCompanionFiles'), inputs = $('lfCompanionInputs');
     links.replaceChildren(); inputs.replaceChildren();
-    const fields = files.find(f=>f.name==='fields.json')?.data;
+    const fields = files.find(f=>f.path===`${base}/fields.json`)?.data;
     if (Array.isArray(fields)) for (const field of fields.slice(0,32)) {
       if (!field || !/^[a-zA-Z_]\w{0,79}$/.test(field.name) || typeof field.name!=='string' || !Array.isArray(field.options)) continue;
       const options = field.options.slice(0,100).filter(x=>x && ['string','number','boolean'].includes(typeof x.value));
@@ -139,18 +199,40 @@
       label.append(select); inputs.append(label);
     }
     for (const file of files) {
-      const button = document.createElement('button');
-      button.type='button'; button.className='button button-outline button-small';
-      button.textContent=`Download ${file.name}`;
-      button.onclick=()=>{
-        const url=URL.createObjectURL(new Blob([file.text],{type:'application/json'}));
-        const link=document.createElement('a');link.href=url;link.download=file.name;link.click();
-        setTimeout(()=>URL.revokeObjectURL(url),3000);
-      };
-      links.append(button);
+      const link = document.createElement('a');
+      link.className='button button-outline button-small';
+      link.textContent=file.path.slice(base.length+1);
+      if (typeof file.text==='string') {
+        link.href='#';
+        link.onclick=event=>{event.preventDefault();saveSource(file.name,file.text);};
+      } else {
+        link.href=file.url;link.target='_blank';link.rel='noopener noreferrer';
+      }
+      links.append(link);
     }
+    const bind=document.createElement('button');
+    bind.type='button';bind.className='button button-outline button-small';
+    bind.textContent='Download Python with selected parameters';
+    bind.hidden=!fields || !/\bget_values\s*\(/.test(source?.text||'') || /^\s*def get_values\s*\(/m.test(source?.text||'');
+    bind.onclick=async()=>{
+      const original=source;
+      const values=Object.fromEntries([...inputs.querySelectorAll('select[data-lf-parameter]')]
+        .filter(x=>x.value!=='').map(x=>[x.dataset.lfParameter,JSON.parse(x.value)]));
+      try {
+        const {bindLibrarySource}=await import('./labflow-ast-client.js');
+        const output=await bindLibrarySource(original.text,values);
+        if(source!==original)return;
+        saveSource(original.file.replace(/\.py$/i,'.configured.py'),output);
+        tell('Configured copy downloaded. Analyze in the Opentrons App before use; the original template is unchanged.');
+      } catch(error) {if(source===original)tell(error.message,true);}
+    };
+    inputs.append(bind);
   }
-
+  function saveSource(name,text){
+    const url=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));
+    const link=document.createElement('a');link.href=url;link.download=name;link.click();
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
+  }
   function show(result){
     source=result;$('lfSource').hidden=false;$('lfSourceTitle').textContent=result.file;
     $('lfUpstream').href=`https://github.com/Opentrons/Protocols/blob/${result.path}`;

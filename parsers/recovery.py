@@ -31,9 +31,25 @@ def passive(expr, names):
     return False
 
 
+def literal_number(expr):
+    if isinstance(expr, ast.UnaryOp) and isinstance(expr.op, (ast.USub, ast.UAdd)):
+        expr = expr.operand
+    return (isinstance(expr, ast.Constant) and type(expr.value) in (int, float)
+            and abs(expr.value) < 1e6)
+
+
 def target(expr, kinds):
     """Allow a literal well address, optionally with a nominal vertical reference."""
     if isinstance(expr, ast.Call) and isinstance(expr.func, ast.Attribute):
+        if expr.func.attr == 'move' and len(expr.args) == 1 and not expr.keywords:
+            point = expr.args[0]
+            # Restrict moves to exact Point literals from the known import.
+            if (isinstance(point, ast.Call) and isinstance(point.func, ast.Name)
+                    and kinds.get(point.func.id) == 'point_constructor'
+                    and len(point.args) <= 3 and all(literal_number(a) for a in point.args)
+                    and all(k.arg in ('x', 'y', 'z')[len(point.args):] and literal_number(k.value)
+                            for k in point.keywords)):
+                return target(expr.func.value, kinds)
         if (expr.func.attr in {'top', 'bottom', 'center'} and
                 all(passive(a, {}) for a in expr.args) and
                 all(k.arg == 'z' and passive(k.value, {}) for k in expr.keywords)):
@@ -66,6 +82,10 @@ def recovery(source, first=None, last=None):
         if isinstance(n, ast.ImportFrom) and n.module == 'opentrons' and not n.level:
             need(all(x.name == 'protocol_api' and x.asname is None for x in n.names),
                  'Unsupported module-level import.')
+        elif isinstance(n, ast.ImportFrom) and n.module == 'opentrons.types' and not n.level:
+            need(len(n.names) == 1 and n.names[0].name == 'Point' and n.names[0].asname is None
+                 and 'Point' not in names, 'Unsupported opentrons.types import.')
+            names['Point'] = 'point_constructor'
         elif isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name):
             name = n.targets[0].id
             need(name not in names and passive(n.value, {}), 'Unsupported global initializer or rebinding.')
@@ -86,9 +106,25 @@ def recovery(source, first=None, last=None):
         line = node.lineno
         need(line > previous_end, f'Line {line}: put statements on separate lines.')
         previous_end = node.end_lineno
+        if isinstance(node, (ast.For, ast.While, ast.If)):
+            raise Ineligible(f'Line {line}: recovery cannot split or replay a loop or branch. Use verified, explicit tip cycles.')
+        if any(isinstance(item, ast.Call) and isinstance(item.func, ast.Name) and item.func.id == 'get_values'
+               for item in ast.walk(node)):
+            raise Ineligible(f'Line {line}: unresolved Library inputs. Download a configured copy; loops and implicit tips still require separate recovery support.')
         if isinstance(node, ast.Assign) and not statements:
+            # Configured Library parameters can be kept as flat literal unpacking.
+            if len(node.targets) == 1 and isinstance(node.targets[0], (ast.List, ast.Tuple)):
+                lhs, rhs = node.targets[0].elts, node.value
+                need(isinstance(rhs, (ast.List, ast.Tuple)) and len(lhs) == len(rhs.elts)
+                     and all(isinstance(item, ast.Name) and item.id not in names for item in lhs)
+                     and len({item.id for item in lhs}) == len(lhs) and passive(rhs, {}),
+                     f'Line {line}: unsupported setup unpacking.')
+                names.update({item.id: 'literal' for item in lhs})
+                continue
             need(len(node.targets) == 1 and isinstance(node.targets[0], ast.Name), f'Line {line}: unsupported setup binding.')
             name, expr = node.targets[0].id, node.value
+            need(not isinstance(expr, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)),
+                 f'Line {line}: computed setup such as a rack comprehension is not eligible. Use explicit hardware loads and a literal list of handles.')
             need(name not in names, f'Line {line}: setup rebinding is not supported.')
             if (isinstance(expr, ast.Call) and isinstance(expr.func, ast.Attribute)
                     and isinstance(expr.func.value, ast.Name)):
@@ -96,7 +132,7 @@ def recovery(source, first=None, last=None):
                 loads = {'load_labware':'labware', 'load_module':'module', 'load_instrument':'pipette'}
                 kind = loads.get(method) if owner == 'context' else 'labware' if owner == 'module' and method == 'load_labware' else None
                 need(kind and all(passive(a, names) for a in expr.args) and
-                     all(k.arg and passive(k.value, names) for k in expr.keywords), f'Line {line}: unresolved hardware setup.')
+                     all(k.arg and passive(k.value, names) for k in expr.keywords), f'Line {line}: unresolved hardware setup. Expand computed rack or labware loads into explicit declarations.')
                 names[name] = kind
             else:
                 need(passive(expr, {}) or target(expr, names), f'Line {line}: unsupported setup expression.')
@@ -159,9 +195,60 @@ def recovery(source, first=None, last=None):
     return result
 
 
-def recovery_result(source, first=None, last=None):
+def recovery_result(source, first=None, last=None, bind=None):
     """An expected rejection is data, so the browser worker can stay warm."""
     try:
+        if bind is not None:
+            return bind_library_values(source, bind)
         return recovery(source, first, last)
     except (ValueError, SyntaxError, RecursionError, OverflowError) as exc:
         return {'ineligible': str(exc)[:350]}
+
+
+def bind_library_values(source, values):
+    """Replace bare Library calls with selected literals, not evaluated Python.
+
+    Edits use UTF-8 AST byte offsets and are applied in reverse order. A helper
+    already present in the source is not replaced, even if it looks equivalent.
+    """
+    import math
+    need(len(source) <= 250_000, 'Source is too large.')
+    tree = ast.parse(source)
+    runs = [node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'run']
+    need(len(runs) == 1 and isinstance(values, dict), 'Expected one run function and explicit parameter choices.')
+    nodes = list(ast.walk(tree))
+    need(not any((isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.arg)) and
+                  getattr(n, 'name', getattr(n, 'arg', None)) == 'get_values') or
+                 (isinstance(n, ast.Name) and n.id == 'get_values' and not isinstance(n.ctx, ast.Load)) or
+                 (isinstance(n, ast.alias) and (n.asname or n.name) in ('get_values', '*')) for n in nodes),
+         'A get_values binding is already present or may be imported. Use the source as supplied.')
+    calls = [n for n in nodes if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == 'get_values']
+    permitted = {id(n.value) for n in runs[0].body if isinstance(n, ast.Assign)}
+    need(calls and all(id(n) in permitted for n in calls),
+         'Only direct get_values assignments inside run() can be configured.')
+    call_names = {id(n.func) for n in calls}
+    need(not any(isinstance(n, ast.Name) and n.id == 'get_values' and id(n) not in call_names for n in nodes),
+         'Indirect get_values references cannot be configured.')
+    lines = source.splitlines(keepends=True)
+    offsets = [0]
+    for line in lines:
+        offsets.append(offsets[-1]+len(line.encode('utf-8')))
+    edits = []
+    for call in calls:
+        need(call.args and not call.keywords and all(isinstance(arg, ast.Constant) and type(arg.value) is str for arg in call.args),
+             'The Library parameter names must be literal strings.')
+        keys = [arg.value for arg in call.args]
+        missing = [key for key in keys if key not in values]
+        need(not missing, 'Choose values for: '+', '.join(missing))
+        selected = [values[key] for key in keys]
+        need(all(type(value) in (str, bool, int, float) and
+                 (type(value) is not float or math.isfinite(value)) for value in selected), 'Invalid parameter value.')
+        edits.append((offsets[call.lineno-1]+call.col_offset,
+                      offsets[call.end_lineno-1]+call.end_col_offset,
+                      repr(selected).encode('utf-8')))
+    payload = source.encode('utf-8')
+    for start, end, replacement in sorted(edits, reverse=True):
+        payload = payload[:start]+replacement+payload[end:]
+    output = payload.decode('utf-8')
+    ast.parse(output)
+    return {'source': output}

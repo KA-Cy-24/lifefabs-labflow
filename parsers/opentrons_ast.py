@@ -29,6 +29,7 @@ class Target:
     reference: str = 'default'
     z: float = 0
     offset: bool = False
+    point: tuple | None = None
 
 
 class Stop(Exception):
@@ -173,7 +174,7 @@ class Reader:
         if isinstance(n, ast.Call):
             return self.call(n)
         if isinstance(n, ast.Attribute) and isinstance(self.expr(n.value), Handle):
-            return Unknown(f'Attribute .{n.attr} is not a call or is runtime dependent.')
+            return Unknown(f'.{n.attr} is referenced without parentheses; no robot action was recorded.')
         return Unknown(f'Unsupported expression: {type(n).__name__}.')
 
     def call(self, n):
@@ -195,7 +196,12 @@ class Reader:
                     return list(zip(*(self.iterable(x) for x in args)))
                 return list(enumerate(self.iterable(args[0]), *args[1:]))
             if name == 'Point':
-                return {'point': True}  # Marker only; no coordinates claimed.
+                axes = ('x', 'y', 'z')
+                if len(args) <= 3 and set(kw) <= set(axes) and not set(axes[:len(args)]) & set(kw):
+                    point = tuple(arg(i, axis, 0) for i, axis in enumerate(axes))
+                    if all(type(value) in (int, float) and abs(value) < 1e6 for value in point):
+                        return {'point': point}
+                return Unknown('Point depends on an unresolved coordinate.')
             # Override only an absent Library helper with user-selected data.
             # Never execute a get_values function supplied in Python source.
             if name == 'get_values' and name not in self.env and not kw and args:
@@ -217,7 +223,9 @@ class Reader:
                 return replace(obj, reference=method, z=z if type(z) in (int, float) else 0,
                                offset=obj.offset or type(z) not in (int, float))
             if method == 'move':
-                return replace(obj, offset=True)
+                point = args[0].get('point') if len(args) == 1 and not kw and isinstance(args[0], dict) else None
+                # Record one literal relative move. Chained/dynamic moves stay unknown.
+                return replace(obj, offset=True, point=point if not obj.offset else None)
         if not isinstance(obj, Handle):
             raise Stop('Unresolved receiver for .' + method + '().')
         kind = obj.kind
@@ -288,8 +296,11 @@ class Reader:
         def target(x):
             if isinstance(x, Target):
                 if x.offset:
-                    self.warn(n, 'Offset or dynamic height not rendered as a coordinate.')
-                return dict(lab=x.lab, well=x.well, reference=x.reference, z=x.z, offset=x.offset)
+                    if x.point is not None:
+                        self.warn(n, f'Constant offset {x.point} mm retained relative to {x.reference} (Z={x.z} mm). Deck preview highlights the well, not the offset point.')
+                    else:
+                        self.warn(n, 'Dynamic or unsupported offset; exact position unresolved.')
+                return dict(lab=x.lab, well=x.well, reference=x.reference, z=x.z, offset=x.offset, point=x.point)
             if isinstance(x, (list, tuple)):
                 return [target(v) for v in x]
             self.warn(n, 'A command target could not be resolved.')
