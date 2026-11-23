@@ -1,0 +1,16 @@
+/* Keep the original panels, grid, canvas and theme in both modes. */
+#instrumentGalleryPanel[hidden], #visualFlowPanel[hidden] { display:none !important; }
+.lf-is-inspecting :is(.instrument-gallery-actions, #instrumentCatalogue, .instrument-work-area ~ .instrument-exports,
+  .instrument-recycle-row, .instrument-exports, .custom-device-maker, #largeModuleLayer, .mount-content, .instrument-slot-content,
+  .flow-topbar, .flow-workspace ~ .flow-status-footer, .flow-palette, #flowBlocks, #flowAddCycle, #flowCount, #flowStatus,
+  #flowInspector, .flow-inspector-header, .flow-help, .flow-start, .flow-end) { display:none !important; }
+.lf-is-inspecting .flow-workspace { grid-template-columns:minmax(0, 2fr) minmax(0, 1fr); }
+.lf-is-inspecting .instrument-slot:disabled { opacity:1; cursor:default; color:inherit; }
+.lf-inspect-placement, .lf-inspect-detail, .lf-inspect-hardware-note { white-space:pre-line; overflow-wrap:anywhere; }
+.lf-inspect-placement { font-size:.8rem; }
+.lf-inspect-hardware-note { padding:.65rem; }
+.lf-inspect-projection .flow-block { width:100%; text-align:start; white-space:normal; color:inherit; }
+@media(max-width:720px) { .lf-is-inspecting .flow-workspace { grid-template-columns:minmax(0,1fr); } }
+.lf-is-inspecting :is(#hardwareLabwareSection, .instrument-palette) { display:none !important; }
+.lf-is-inspecting .instrument-gallery-layout { grid-template-columns:minmax(0,1fr); }
+.lf-is-inspecting #deckUsage { display:none; }

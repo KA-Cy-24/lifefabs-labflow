@@ -6,22 +6,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#05070d">
   <meta name="description" content="LifeFabs OT-2 protocol builder, code inspection and coordinate visualisation prototype.">
-  <title>OT-2 Protocol Lab — LifeFabs Fieldnotes</title>
+  <title>OT-2 Protocol Lab — Lifefabs LabFlow</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="styles-theme.css">
   <link rel="stylesheet" href="styles-instrument-gallery.css">
   <link rel="stylesheet" href="styles-ui-clarity.css">
   <link rel="stylesheet" href="styles-composer.css">
   <link rel="stylesheet" href="styles-visual-flow.css">
+  <link rel="stylesheet" href="labflow-phase1.css">
+  
+  <script src="js/labflow-geometry.js" defer></script>
+  <script src="js/labflow-phase1.js" defer></script>
   <script src="js/theme.js" defer></script>
   <script src="js/tool-guide.js" defer></script>
   <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
   <script type="module" src="js/ot2.js"></script>
+  <script type="module" src="js/labflow-recovery-ui.js"></script>
   <script src="js/official-sim-client.js" defer></script>
 </head>
 <body class="lab-body">
   <header class="site-header lab-header">
-    <a class="brand" href="index.html"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><span><strong>LifeFabs</strong><small>FIELDNOTES / HYBRID LAB</small></span></a>
+    <a class="brand" href="index.html"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><span><strong>Lifefabs LabFlow</strong><small>LABFLOW / HYBRID LAB</small></span></a>
     <nav class="top-nav" aria-label="Main navigation"><a href="index.html">Home</a><a class="active" href="ot2.html">OT-2 protocol lab</a><a href="food-dyes.html">Food-dye simulation</a></nav>
     <a class="header-link" href="https://docs.opentrons.com/" target="_blank" rel="noreferrer">Official documentation ↗</a>
       <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch to bright theme" aria-pressed="false"><span class="theme-toggle-icon" aria-hidden="true">☼</span><span class="theme-toggle-label">Bright mode</span></button>
@@ -35,9 +40,64 @@
   <div class="workbench-tabs" role="tablist" aria-label="Protocol work modes">
     <button id="modeBuild" class="active" role="tab" aria-selected="true" aria-controls="builderMode">01 Build a protocol</button>
     <button id="modeInspect" role="tab" aria-selected="false" aria-controls="inspectMode">02 Inspect Python <span>upload / paste</span></button>
+    <button id="lfDevicesTab" type="button" role="tab" aria-selected="false" aria-controls="lfStudio">03 Custom Devices</button>
+    <button id="lfLibraryTab" type="button" role="tab" aria-selected="false" aria-controls="lfLibrary">04 Protocol Library</button>
   </div>
 
   <main class="lab-main">
+    <section id="lfStudio" class="panel lf-panel" role="tabpanel" aria-labelledby="lfDevicesTab" hidden>
+<header class="panel-header"><div><span class="panel-kicker">03 · LABWARE STUDIO</span><h2>Custom Devices</h2><p>Measure the mounted assembly, define pipette targets, and export Opentrons labware JSON.</p></div></header><div class="lf-body">
+    <p>Define the installed assembly as single-slot, single-channel OT-2 labware. A valid file is not a clearance or calibration check.</p>
+    <form id="lfForm">
+    <fieldset><legend>1 · Assembly</legend><div class="lf-fields">
+    <label>Display name<input name="name" required maxlength="100"></label><label>Load name<input name="loadName" pattern="[a-z0-9_]+" required placeholder="custom_sampling_fixture_v1"></label>
+    <label>Manufacturer / builder<input name="brand" required></label><label>Definition revision<input name="version" type="number" min="1" step="1" value="1" required></label>
+    <label>Category<select name="category"><option value="tubeRack">Tube rack</option><option value="reservoir">Reservoir</option><option value="wellPlate">Well plate</option></select></label>
+    <label>X length (mm)<input name="x" type="number" min="0.01" step="any" required></label><label>Y width (mm)<input name="y" type="number" min="0.01" step="any" required></label><label>Z height (mm)<input name="z" type="number" min="0.01" step="any" required></label>
+    </div><details><summary>Use an STL to measure the envelope</summary><p>Only the bounding box is imported. Confirm the installed base, axis directions and the mounting fixture before accepting it. Measure well locations independently.</p>
+    <div class="lf-fields"><label>ASCII or binary STL<input id="lfSTL" type="file" accept=".stl"></label><label>Model units<select id="lfUnits"><option value="">Select units</option><option value="1">Millimeters</option><option value="10">Centimeters</option><option value="25.4">Inches</option><option value="1000">Meters</option></select></label><label>CAD axes mapped to deck X/Y/Z<select id="lfAxes"><option>xyz</option><option>xzy</option><option>yxz</option><option>yzx</option><option>zxy</option><option>zyx</option></select></label></div>
+    <label><input type="checkbox" id="lfAxesConfirmed"> The selected axes match the mounted assembly and its base.</label><button class="button button-outline" type="button" id="lfMeasure">Use STL envelope</button></details></fieldset>
+    <fieldset><legend>2 · Pipette targets</legend><p>Origin: left-front-bottom of the installed assembly. X goes right, Y goes back, Z goes up. Enter each opening’s center X/Y and the well-bottom Z. All dimensions are in mm; capacity is in µL.</p>
+    <div id="lfRows"></div><button class="button button-outline" type="button" id="lfAdd">Add target</button> <button class="button button-outline" type="button" id="lfPreview">Check and preview</button>
+    <div id="lfPlot"></div></fieldset>
+    <fieldset><legend>3 · Export or add to catalogue</legend><p>Export for review in the Opentrons App or Protocol Designer. Adding to LabFlow makes the definition available in the Hardware Configurator; it does not place it on the deck.</p>
+    <button class="button button-outline" type="submit">Download labware JSON</button> <button class="button button-outline" type="button" id="lfRegister">Add to Hardware Configurator</button></fieldset>
+    <p id="lfStatus" role="status"></p></form></div>
+    </section>
+    <section id="lfLibrary" class="panel lf-panel" role="tabpanel" aria-labelledby="lfLibraryTab" hidden>
+<header class="panel-header"><div><span class="panel-kicker">04 · PROTOCOL LIBRARY</span><h2>Start from an Opentrons protocol</h2><p>Find an example, inspect a copy in LabFlow, or download the source to adapt locally.</p></div><a class="button button-outline button-small" href="https://github.com/Opentrons/Protocols/tree/develop" target="_blank" rel="noopener">Browse upstream ↗</a></header>
+<div class="lf-body">
+<aside class="lf-note"><strong>Source: Opentrons/Protocols · develop</strong><br>This is the upstream staging branch. Source may be a template, not a ready-to-run or independently verified protocol. LabFlow never executes it.</aside>
+<h3>Featured protocols</h3>
+<div class="lf-fields lf-featured">
+<article class="lf-card"><span class="tag">Flex · API 2.18 fixture</span><h4>Pierce BCA Protein Assay</h4><p>The supplied copy is Flex-only. A matching upstream file has not been confirmed.</p><div class="lf-actions"><button class="button button-outline" data-lf-slug="bca_protein_assay">Find source</button><a href="https://library.opentrons.com/p/bca_protein_assay" target="_blank" rel="noopener">Library page ↗</a></div></article>
+<article class="lf-card"><span class="tag">OT-2 · API 2.13 template</span><h4>Luciferase Reporter Assay · Treatment</h4><p>Repository source uses a parameter helper that may be supplied by the Library download.</p><div class="lf-actions"><button class="button button-outline" data-lf-slug="sci-lucif-assay3">Load source</button><a href="https://library.opentrons.com/p/sci-lucif-assay3" target="_blank" rel="noopener">Library page ↗</a></div></article>
+<article class="lf-card"><span class="tag">Upstream match unconfirmed</span><h4>A549 Transient Transfection · Protocol 2</h4><p>Try the repository lookup, or get the published download and open it in Inspect Python.</p><div class="lf-actions"><button class="button button-outline" data-lf-slug="transient_transfection_of_A549cells_Protocol_2">Find source</button><a href="https://library.opentrons.com/p/transient_transfection_of_A549cells_Protocol_2" target="_blank" rel="noopener">Library page ↗</a></div></article>
+</div>
+<section class="lf-card"><h3>Find a protocol on develop</h3>
+<form id="lfFetchForm" class="lf-actions"><label>Protocol slug, Library link, or upstream Python file URL<input id="lfQuery" required placeholder="e.g. sci-lucif-assay3" spellcheck="false" autocapitalize="off"></label><button class="button button-outline" type="submit">Find source</button></form>
+<div class="lf-actions"><button class="button button-outline" id="lfBrowse" type="button">Load repository catalogue</button><button class="button button-outline" id="lfLocal" type="button">Inspect a local file</button></div>
+<div id="lfCatalogue" hidden><label>Filter repository folders<input id="lfFilter" type="search" placeholder="Search by protocol name or slug"></label><p id="lfCount" role="status"></p><div id="lfResults" class="lf-results"></div></div>
+<p id="lfLibraryStatus" role="status" aria-live="polite"></p><div id="lfFiles" class="lf-actions" hidden><label>Choose a Python file<select id="lfFile"></select></label><button class="button button-outline" id="lfLoadFile" type="button">Load selected file</button></div>
+<div id="lfSource" hidden><h4 id="lfSourceTitle"></h4><p id="lfCompatibility"></p><details id="lfNotes" hidden>
+  <summary>Protocol documentation</summary>
+  <label for="lfNotesFile">Markdown file</label>
+  <select id="lfNotesFile"></select>
+  <a id="lfNotesUpstream" class="button button-outline button-small" target="_blank" rel="noopener noreferrer">Open on GitHub</a>
+  <article id="lfNotesBody" class="lf-notes-body" aria-label="Rendered protocol documentation"></article>
+</details>
+        <div>
+          <p role="status" id="lfCompanionStatus"></p>
+          <div class="form-actions" id="lfCompanionFiles"></div>
+          <div class="lf-fields" id="lfCompanionInputs"></div>
+          <p>Selections apply only to static inspection. Python and JSON downloads are unchanged; repository templates may still require the published Library download to run.</p>
+        </div>
+<div class="lf-actions"><button class="button button-outline" id="lfOpenSource" type="button">Open in Inspect Python</button><button class="button button-outline" id="lfDownload" type="button">Download source .py</button><a id="lfUpstream" target="_blank" rel="noopener">View upstream file ↗</a></div></div>
+</section>
+<aside class="lf-note"><strong>To test or adapt:</strong> Inspect Python gives a static preview for supported OT-2 code. Review warnings, edit a copy, then analyze it in the Opentrons App for the declared robot and API. Check the real deck before any run. Flex files are source-only in LabFlow.</aside>
+</div>
+    </section>
+
     <section class="panel instrument-gallery-panel" id="instrumentGalleryPanel" aria-labelledby="instrumentGalleryTitle">
       <div class="panel-header instrument-gallery-head">
         <div><span class="panel-kicker">01 · HARDWARE CONFIGURATOR</span><h2 id="instrumentGalleryTitle">Instrument &amp; module gallery</h2><p>Mount pipettes; place labware, tip racks, and compatible modules in deck slots. Move a placed item to reposition it, or drop it in the recycle bin to remove it from this layout.</p></div>
@@ -163,6 +223,7 @@
 
 
 
+
     <section class="panel visual-flow-panel" id="visualFlowPanel" aria-labelledby="flowTitle">
       <div class="panel-header"><div><span class="panel-kicker">03 · PROTOCOL COMPOSER · VISUAL BLOCKS</span><h2 id="flowTitle">Snap together your robot's actions</h2><p>Choose a block from the palette. Every block reads the mounted pipettes and placed labware above. Click a block to edit; drag blocks to reorder.</p></div><span class="tag">LIVE PYTHON + DECK</span></div>
       <div class="flow-topbar"><label>Protocol name <input id="flowName" value="LifeFabs OT-2 visual workflow" maxlength="80"></label><label>API version <select id="flowApi"><option value="2.15">2.15</option><option value="2.20">2.20</option><option value="2.28">2.28</option></select></label><button type="button" id="flowExample" class="button button-outline button-small">Load transfer example</button><button type="button" id="flowClear" class="button button-outline button-small">Clear blocks</button><button type="button" id="flowSave" class="button button-outline button-small">Save workflow</button><label class="flow-import button button-outline button-small">Open JSON<input id="flowLoad" type="file" accept=".json,application/json" hidden></label></div>
@@ -250,8 +311,20 @@
 </div>    <div class="lower-grid">
       <section class="panel code-panel">
         <div class="panel-header"><div><span class="panel-kicker">SOURCE CODE</span><h2 id="codeTitle">Generated OT-2 Python protocol</h2><p>Edit the example or download the generated file.</p></div><div class="code-toolbar"><button id="copyCode" class="button button-outline" type="button">Copy</button><button id="downloadCode" class="button button-primary" type="button">Download .py</button></div></div>
-        <div id="inspectIntake" class="source-intake hidden"><div class="source-intake-row"><label for="pythonFile"><strong>Upload Python</strong></label><input id="pythonFile" type="file" accept=".py,.txt,text/plain"><button id="loadExample" class="button button-outline button-small" type="button">Load sample</button></div><p>Python → visual viewer: click Analyse code after uploading or pasting a script. The static checker recognises common explicit OT-2 load, pick-up, aspirate, dispense, drop-tip and simple transfer statements. It does not execute Python or the Opentrons API.</p></div>
+        <div id="inspectIntake" class="source-intake"><div class="source-intake-row"><label for="pythonFile"><strong>Upload Python</strong></label><input id="pythonFile" type="file" accept=".py,.txt,text/plain"><button id="loadExample" class="button button-outline button-small" type="button">Load sample</button></div><p>Python → visual viewer: click Analyse code after uploading or pasting a script. The static checker recognises common explicit OT-2 load, pick-up, aspirate, dispense, drop-tip and simple transfer statements. It does not execute Python or the Opentrons API.</p></div>
         <textarea id="codeEditor" class="code-area" spellcheck="false" aria-label="Opentrons Python protocol editor" autocapitalize="off" autocomplete="off"></textarea>
+        <details class="source-intake" id="lfRecovery">
+          <summary><strong>Crop execution / prepare a recovery run</strong></summary>
+          <p>Check the current Python, then select between complete, tip-free groups. Hardware setup and code outside <code>run()</code> are copied unchanged. This creates a new run; it does not resume a paused robot.</p>
+          <button class="button button-outline button-small" type="button" id="lfRecoveryScan">Find recovery boundaries</button>
+          <div id="lfRecoveryControls" hidden>
+            <p><label for="lfRecoveryStart">Start of execution</label> · <output id="lfRecoveryFrom" for="lfRecoveryStart"></output><br><input type="range" id="lfRecoveryStart" min="0" step="1"></p>
+            <p><label for="lfRecoveryEnd">End of execution</label> · <output id="lfRecoveryTo" for="lfRecoveryEnd"></output><br><input type="range" id="lfRecoveryEnd" min="0" step="1"></p>
+            <p><label><input type="checkbox" id="lfRecoveryConfirm"> I checked the actual deck and wells, resolved any partly completed transfers, removed any attached tips, and verified the selected tip positions are unused.</label></p>
+            <button class="button button-outline button-small" type="button" id="lfRecoveryDownload" disabled>Download recovery Python</button>
+          </div>
+          <p role="status" id="lfRecoveryStatus"></p>
+        </details>
         <div class="code-footer"><span><strong id="codeLineCount">0 lines</strong> · <span id="codeApiLabel">API v2.15</span></span><span id="codeState">Generated template · editable</span><span class="kbd">Ctrl/⌘ + Enter</span> analyse</div>
       </section>
 
@@ -282,8 +355,10 @@
     <div class="warning-box" style="margin:22px 0 0"><strong>Execution safety gate</strong><p>This is an educational protocol builder and visualiser, not a robot controller. Inspect the generated Python, validate the labware definitions and pipette/tips on the actual OT-2, run official protocol analysis/simulation for the intended software version, confirm current robot calibration, and dry-run safely before using expensive samples or reagents. Never rely on a browser visualization alone to rule out collisions.</p></div>
   </main>
 
-  <footer class="site-footer workbench-footer"><div class="footer-brand"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><strong>LifeFabs Fieldnotes</strong></div><p>Prototype built from the supplied OT-2 Quick Start Guide, STL model and selected Opentrons repository excerpts.</p><div class="footer-links"><a href="assets/ot2-quick-start-guide.pdf" target="_blank">Quick Start PDF ↗</a><a href="https://github.com/Opentrons/opentrons" target="_blank" rel="noreferrer">Opentrons source ↗</a><a href="index.html">Home ↗</a></div></footer>
+  <footer class="site-footer workbench-footer"><div class="footer-brand"><img class="brand-logo" src="assets/lifefabs-logo-light.svg" data-logo-dark="assets/lifefabs-logo-light.svg" data-logo-light="assets/lifefabs-logo-dark.svg" alt=""><strong>Lifefabs LabFlow</strong></div><p>Prototype built from the supplied OT-2 Quick Start Guide, STL model and selected Opentrons repository excerpts.</p><div class="footer-links"><a href="assets/ot2-quick-start-guide.pdf" target="_blank">Quick Start PDF ↗</a><a href="https://github.com/Opentrons/opentrons" target="_blank" rel="noreferrer">Opentrons source ↗</a><a href="index.html">Home ↗</a></div></footer>
   <script src="js/instrument-gallery.js" defer></script>
   <script src="js/visual-composer-v4.js" defer></script>
+<script defer src="https://cdn.jsdelivr.net/npm/marked@15.0.12/lib/marked.umd.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/dompurify@3.4.2/dist/purify.min.js"></script>
 </body>
 </html>
