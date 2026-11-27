@@ -315,13 +315,13 @@
         <textarea id="codeEditor" class="code-area" spellcheck="false" aria-label="Opentrons Python protocol editor" autocapitalize="off" autocomplete="off"></textarea>
         <details class="source-intake" id="lfRecovery">
           <summary><strong>Crop execution / prepare a recovery run</strong></summary>
-          <p>Check the current Python, then select between complete, tip-free groups. Hardware setup and code outside <code>run()</code> are copied unchanged. This creates a new run; it does not resume a paused robot.</p>
+          <p>Resolve supported fixed loops into individual actions, then choose complete, tip-free restart boundaries. Setup and code outside <code>run()</code> are preserved. Only the selected execution actions are regenerated; the original Python remains unchanged. A recovery candidate is a new run, not the robot's saved state.</p>
           <button class="button button-outline button-small" type="button" id="lfRecoveryScan">Find recovery boundaries</button>
           <div id="lfRecoveryControls" hidden>
             <p><label for="lfRecoveryStart">Start of execution</label> · <output id="lfRecoveryFrom" for="lfRecoveryStart"></output><br><input type="range" id="lfRecoveryStart" min="0" step="1"></p>
             <p><label for="lfRecoveryEnd">End of execution</label> · <output id="lfRecoveryTo" for="lfRecoveryEnd"></output><br><input type="range" id="lfRecoveryEnd" min="0" step="1"></p>
-            <p><label><input type="checkbox" id="lfRecoveryConfirm"> I checked the actual deck and wells, resolved any partly completed transfers, removed any attached tips, and verified the selected tip positions are unused.</label></p>
-            <button class="button button-outline button-small" type="button" id="lfRecoveryDownload" disabled>Download recovery Python</button>
+            <p><label><input type="checkbox" id="lfRecoveryConfirm"> I verified the physical deck and sample contents, resolved partial transfers, removed attached tips, and replenished or independently verified all tips required by this new run. I understand that generated Python still requires official Opentrons analysis and a controlled dry run.</label></p>
+            <button class="button button-outline button-small" type="button" id="lfRecoveryDownload" disabled>Download recovery candidate (.py)</button>
           </div>
           <p role="status" id="lfRecoveryStatus"></p>
         </details>

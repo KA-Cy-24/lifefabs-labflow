@@ -46,8 +46,10 @@ async function fetchOfficial(name) {
   } catch { return null; }
 }
 
-export async function requestRecovery(source, first=null, last=null) {
-  const result=await analyse(source, {}, {}, {first,last});
+export async function requestRecovery(source, first=null, last=null, parameters={}) {
+  // Selected Library inputs are applied by the Python AST worker. The downloaded
+  // recovery copy contains these literal values, not a get_values() placeholder.
+  const result=await analyse(source, {}, {}, {first,last,parameters});
   if(result.ineligible) throw Error(result.ineligible);
   return result;
 }
